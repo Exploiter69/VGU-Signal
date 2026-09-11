@@ -13,10 +13,16 @@ FIXTURE = b"""
 
 def test_html_extraction_is_deterministic() -> None:
     first = extract_document(
-        evidence_id="ev-1", source_id="vgu-resources", url="https://vgu.ac.in/resources", body=FIXTURE
+        evidence_id="ev-1",
+        source_id="vgu-resources",
+        url="https://vgu.ac.in/resources",
+        body=FIXTURE,
     )
     second = extract_document(
-        evidence_id="ev-1", source_id="vgu-resources", url="https://vgu.ac.in/resources", body=FIXTURE
+        evidence_id="ev-1",
+        source_id="vgu-resources",
+        url="https://vgu.ac.in/resources",
+        body=FIXTURE,
     )
 
     assert first == second
