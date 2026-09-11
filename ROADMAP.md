@@ -26,11 +26,15 @@ This roadmap is the execution plan for VGU Signal. The order is deliberate: **tr
 - [x] Source strategy documented.
 - [x] Product scope and non-goals documented.
 - [x] Privacy and security boundaries documented.
-- [ ] Select implementation stack.
-- [ ] Add project configuration and quality gates.
-- [ ] Add test strategy and fixtures.
+- [x] Select implementation stack.
+- [x] Add project configuration and quality-gate specification.
+- [x] Add implementation plan and fixture/test strategy.
 
-**Exit gate:** architecture and trust contracts are explicit enough that implementation decisions can be evaluated against them.
+**Concrete stack:** Python 3.12+, `httpx`, BeautifulSoup, PyMuPDF, pdfplumber, Pydantic where useful, pytest, Ruff and mypy; TypeScript Cloudflare Worker for the delivery boundary; D1/R2 for production state/evidence; GitHub Actions for scheduled acquisition.
+
+**Execution plan:** see `docs/IMPLEMENTATION_PLAN.md`, `docs/TECH_STACK.md` and `docs/QUALITY_GATES.md`.
+
+**Exit gate:** architecture and trust contracts are explicit enough that implementation decisions can be evaluated against them, and the implementation skeleton can be built without reopening the core architecture.
 
 ## Phase 1 — Source discovery and evidence engine
 
