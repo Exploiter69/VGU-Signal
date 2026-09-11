@@ -4,9 +4,9 @@
 
 ## Current stage
 
-VGU Signal is at the **pre-implementation architecture baseline**.
+VGU Signal has completed the **Phase 0 architecture and implementation-planning baseline** and is now ready to begin repository bootstrap and the first Phase 1 vertical slice.
 
-The repository has been created and the foundational product, architecture, trust, source, security and privacy contracts are documented.
+The repository contains the foundational product, architecture, trust, source, security and privacy contracts plus the concrete technical stack, quality gates and implementation plan.
 
 ## Completed
 
@@ -21,24 +21,30 @@ The repository has been created and the foundational product, architecture, trus
 - ERP and WhatsApp boundaries defined.
 - AI boundary defined.
 - Implementation roadmap defined.
+- Concrete implementation stack selected.
+- Quality gates defined.
+- Phase 0 implementation plan defined.
 
 ## Not yet implemented
 
+- project source tree;
 - source registry;
 - acquisition pipeline;
 - evidence store;
 - PDF/HTML extraction;
 - verification engine;
-- database schema;
+- database schema/migrations;
 - Telegram bot;
 - scheduled jobs;
 - production deployment;
 - user onboarding;
-- automated tests.
+- automated test suite.
 
 ## Next milestone
 
-**Phase 0 completion:** select the concrete implementation stack, establish repository quality gates, create the initial test harness and begin Phase 1 source/evidence implementation.
+**Repository bootstrap → Gate 0 → first official VGU source/evidence vertical slice.**
+
+The first implementation should prove bounded acquisition, SHA-256 evidence, deterministic extraction, provenance and fixture-backed tests before expanding source coverage.
 
 ## Definition of success for the first usable release
 
