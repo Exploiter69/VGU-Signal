@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from types import MappingProxyType
+
 from vgu_signal.domain import Source, SourceClass
 
 VGU_RESOURCES = Source(
