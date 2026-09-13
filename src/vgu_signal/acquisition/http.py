@@ -39,7 +39,9 @@ class HttpFetcher:
     def fetch(self, url: str) -> FetchResult:
         try:
             with httpx.Client(
-                timeout=self._timeout, follow_redirects=True, headers=self._headers
+                timeout=self._timeout,
+                follow_redirects=True,
+                headers=self._headers,
             ) as client:
                 with client.stream("GET", url) as response:
                     response.raise_for_status()
@@ -47,12 +49,8 @@ class HttpFetcher:
                     for chunk in response.iter_bytes():
                         body.extend(chunk)
                         if len(body) > self._max_bytes:
-                            raise FetchError(
-                                f"response exceeds {self._max_bytes} byte limit"
-                            )
-                    content_type = response.headers.get(
-                        "content-type", "application/octet-stream"
-                    )
+                            raise FetchError(f"response exceeds {self._max_bytes} byte limit")
+                    content_type = response.headers.get("content-type", "application/octet-stream")
                     return FetchResult(
                         url=str(response.url),
                         status_code=response.status_code,
