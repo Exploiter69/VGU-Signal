@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import pytest
 
-from vgu_signal.acquisition.policy import PolicyError, RobotsPolicy, SitemapPolicy, validate_content_type
+from vgu_signal.acquisition.policy import (
+    PolicyError,
+    RobotsPolicy,
+    SitemapPolicy,
+    validate_content_type,
+)
 
 
 def test_robots_policy_honours_disallow_and_collects_sitemaps() -> None:

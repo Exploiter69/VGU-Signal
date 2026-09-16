@@ -62,7 +62,5 @@ def validate_content_type(content_type: str, allowed: tuple[str, ...]) -> str:
     media_type = content_type.split(";", 1)[0].strip().lower()
     normalized = tuple(value.lower() for value in allowed)
     if media_type not in normalized:
-        raise PolicyError(
-            f"unsupported content type {media_type!r}; expected one of {normalized}"
-        )
+        raise PolicyError(f"unsupported content type {media_type!r}; expected one of {normalized}")
     return media_type

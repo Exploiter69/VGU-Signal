@@ -94,7 +94,9 @@ class AcquisitionEngine:
             if previous is not None and previous.raw_content_hash == evidence.raw_content_hash:
                 status = AcquisitionStatus.UNCHANGED
             elif previous is None or inserted:
-                status = AcquisitionStatus.FETCHED if previous is None else AcquisitionStatus.CHANGED
+                status = (
+                    AcquisitionStatus.FETCHED if previous is None else AcquisitionStatus.CHANGED
+                )
             else:
                 status = AcquisitionStatus.UNCHANGED
             return AcquisitionResult(

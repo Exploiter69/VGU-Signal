@@ -91,11 +91,15 @@ class HttpFetcher:
                                 content_type=response.headers.get("content-type", ""),
                                 body=b"",
                                 etag=response.headers.get("etag") or etag,
-                                last_modified=response.headers.get("last-modified") or last_modified,
+                                last_modified=response.headers.get("last-modified")
+                                or last_modified,
                                 not_modified=True,
                             )
                         if response.status_code < 200 or response.status_code >= 300:
-                            if self._retryable_status(response.status_code) and attempt < self._max_retries:
+                            if (
+                                self._retryable_status(response.status_code)
+                                and attempt < self._max_retries
+                            ):
                                 self._sleep(self._retry_delay(attempt, response))
                                 continue
                             raise FetchError(
@@ -105,9 +109,7 @@ class HttpFetcher:
                         for chunk in response.iter_bytes():
                             body.extend(chunk)
                             if len(body) > self._max_bytes:
-                                raise FetchError(
-                                    f"response exceeds {self._max_bytes} byte limit"
-                                )
+                                raise FetchError(f"response exceeds {self._max_bytes} byte limit")
                         return FetchResult(
                             url=str(response.url),
                             status_code=response.status_code,

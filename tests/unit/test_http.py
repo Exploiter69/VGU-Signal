@@ -20,7 +20,10 @@ def test_fetch_returns_body_hash_and_http_metadata() -> None:
     assert result.status_code == 200
     assert result.content_type == "text/html; charset=utf-8"
     assert result.etag == '"abc"'
-    assert result.raw_content_hash == "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+    assert (
+        result.raw_content_hash
+        == "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+    )
 
 
 def test_fetch_sends_conditional_headers_and_accepts_304() -> None:
@@ -54,7 +57,9 @@ def test_fetch_retries_transient_status() -> None:
         attempts += 1
         if attempts == 1:
             return httpx.Response(503, request=request)
-        return httpx.Response(200, headers={"content-type": "text/plain"}, content=b"ok", request=request)
+        return httpx.Response(
+            200, headers={"content-type": "text/plain"}, content=b"ok", request=request
+        )
 
     sleeps: list[float] = []
     result = HttpFetcher(

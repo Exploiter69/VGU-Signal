@@ -25,7 +25,9 @@ def test_engine_fetches_then_detects_unchanged_content() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         nonlocal calls
         calls += 1
-        return httpx.Response(200, headers={"content-type": "text/html"}, content=b"same", request=request)
+        return httpx.Response(
+            200, headers={"content-type": "text/html"}, content=b"same", request=request
+        )
 
     store = InMemoryEvidenceStore()
     engine = AcquisitionEngine(
@@ -50,7 +52,9 @@ def test_engine_preserves_history_when_content_changes() -> None:
     bodies = iter((b"one", b"two"))
 
     def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, headers={"content-type": "text/html"}, content=next(bodies), request=request)
+        return httpx.Response(
+            200, headers={"content-type": "text/html"}, content=next(bodies), request=request
+        )
 
     times = iter(
         (
@@ -81,7 +85,12 @@ def test_engine_preserves_history_when_content_changes() -> None:
 def test_engine_uses_last_known_good_after_fetch_failure() -> None:
     responses = iter(
         (
-            httpx.Response(200, headers={"content-type": "text/html"}, content=b"known", request=httpx.Request("GET", SOURCE.url)),
+            httpx.Response(
+                200,
+                headers={"content-type": "text/html"},
+                content=b"known",
+                request=httpx.Request("GET", SOURCE.url),
+            ),
             httpx.Response(503, request=httpx.Request("GET", SOURCE.url)),
         )
     )
@@ -117,7 +126,9 @@ def test_engine_checks_robots_before_acquisition() -> None:
                 content=b"User-agent: *\nDisallow: /source\n",
                 request=request,
             )
-        return httpx.Response(200, headers={"content-type": "text/html"}, content=b"blocked", request=request)
+        return httpx.Response(
+            200, headers={"content-type": "text/html"}, content=b"blocked", request=request
+        )
 
     source = SOURCE.model_copy(update={"respect_robots": True})
     result = AcquisitionEngine(
