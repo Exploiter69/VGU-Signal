@@ -29,5 +29,5 @@ def test_html_extraction_is_deterministic() -> None:
     assert first.title == "Important Notice"
     assert "20 September 2026" in first.body_text
     assert "not part of evidence" not in first.body_text
-    assert first.links == ("https://vgu.ac.in/resources/notice.pdf",)
+    assert tuple(map(str, first.links)) == ("https://vgu.ac.in/resources/notice.pdf",)
     assert first.parser_version == PARSER_VERSION
