@@ -29,12 +29,21 @@ This roadmap is the execution plan for VGU Signal. The order is deliberate: **tr
 - [x] Select implementation stack.
 - [x] Add project configuration and quality-gate specification.
 - [x] Add implementation plan and fixture/test strategy.
+- [x] Repository bootstrap implemented.
+- [x] Domain, acquisition, extraction and source-registry skeleton implemented.
+- [x] D1 migration foundation implemented.
+- [x] Fixture-backed test foundation implemented.
+- [x] Final Ruff format check passed.
+- [x] Final Ruff lint check passed.
+- [x] Final mypy check passed.
+- [x] Final pytest suite passed.
+- [x] Final Worker typecheck passed.
 
 **Concrete stack:** Python 3.12+, `httpx`, BeautifulSoup, PyMuPDF, pdfplumber, Pydantic where useful, pytest, Ruff and mypy; TypeScript Cloudflare Worker for the delivery boundary; D1/R2 for production state/evidence; GitHub Actions for scheduled acquisition.
 
 **Execution plan:** see `docs/IMPLEMENTATION_PLAN.md`, `docs/TECH_STACK.md` and `docs/QUALITY_GATES.md`.
 
-**Exit gate:** architecture and trust contracts are explicit enough that implementation decisions can be evaluated against them, and the implementation skeleton can be built without reopening the core architecture.
+**Exit gate:** COMPLETE. The repository foundation, contracts, deterministic skeleton, fixture/test foundation and CI quality gates are implemented and the full deterministic CI suite passed on the Phase 0 verification revision.
 
 ## Phase 1 — Source discovery and evidence engine
 
