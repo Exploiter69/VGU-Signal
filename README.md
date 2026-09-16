@@ -59,6 +59,7 @@ Community submissions are treated as `COMMUNITY_SIGNAL` and are never authoritat
 - [Architecture](docs/ARCHITECTURE.md) — system boundaries and data flow.
 - [Trust Model](docs/TRUST_MODEL.md) — evidence, provenance, verification and correction rules.
 - [Source Strategy](docs/SOURCE_STRATEGY.md) — authoritative source hierarchy and acquisition strategy.
+- [Source Inventory](docs/SOURCE_INVENTORY.md) — Phase 1 admitted official VGU sources.
 - [Product Specification](docs/PRODUCT.md) — product scope, UX and non-goals.
 - [Development Guide](docs/DEVELOPMENT.md) — local development and engineering workflow.
 - [Security Policy](SECURITY.md) — security boundaries and responsible disclosure.
@@ -73,9 +74,11 @@ Free infrastructure may be used where it is appropriate, but no critical compone
 
 ## Status
 
-**Phase 0 — Repository foundation and contracts: COMPLETE.**
+**Phase 1 — Source Discovery & Evidence Engine: COMPLETE.**
 
-The deterministic repository bootstrap is implemented and the full Phase 0 CI gate is green. The project is now ready to begin **Phase 1 — Source Discovery & Evidence Engine**. Phase 1 starts with real official-source inventory and acquisition/evidence behavior; it does not reopen the core architecture or trust model.
+Phase 1 now has a bounded HTTP acquisition layer, official source registry, robots/sitemap policy handling, conditional requests, retry/backoff and rate limiting, raw SHA-256 evidence identity, immutable evidence history semantics, last-known-good behavior, acquisition failure observability and fixture-backed tests.
+
+The project is ready for **Phase 2 — Deterministic Extraction & Normalization**. Phase 2 must consume the evidence produced by Phase 1 rather than bypassing it.
 
 The roadmap remains reliability-first: deterministic source monitoring and evidence handling come before AI-heavy or community-heavy features.
 
