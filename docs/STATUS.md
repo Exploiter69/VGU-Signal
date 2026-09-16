@@ -13,12 +13,13 @@ Phase 0 remains closed and unchanged. Phase 1 has now implemented the first dete
 The admitted official public sources are documented in `docs/SOURCE_INVENTORY.md`:
 
 - VGU official resources / handbooks / academic-calendar index;
+- VGU 2026-27 first-year academic calendar PDF;
 - VGU Examination Rules 2.0 PDF;
 - VGU public CDOE notice PDF;
 - VGU public fee information page;
 - VGU public events page.
 
-Academic-calendar documents are intentionally discovered from the official resources index rather than tied to a brittle filename. Authenticated ERP material and private student/community sources remain excluded.
+Academic-calendar discovery remains anchored on the official resources index, while the verified 2026-27 first-year calendar is also registered as a direct evidence target. Authenticated ERP material and private student/community sources remain excluded.
 
 ## Phase 1 implementation checklist
 
