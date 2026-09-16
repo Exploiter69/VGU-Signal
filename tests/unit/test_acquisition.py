@@ -89,9 +89,9 @@ def test_engine_uses_last_known_good_after_fetch_failure() -> None:
                 200,
                 headers={"content-type": "text/html"},
                 content=b"known",
-                request=httpx.Request("GET", SOURCE.url),
+                request=httpx.Request("GET", str(SOURCE.url)),
             ),
-            httpx.Response(503, request=httpx.Request("GET", SOURCE.url)),
+            httpx.Response(503, request=httpx.Request("GET", str(SOURCE.url))),
         )
     )
 

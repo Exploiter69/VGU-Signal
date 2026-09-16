@@ -14,7 +14,7 @@ def test_phase1_registry_contains_high_value_official_sources() -> None:
 
 
 def test_registry_lookup_is_strict() -> None:
-    assert get_source("vgu-fees").url == "https://vgu.ac.in/admission/fee-structure"
+    assert str(get_source("vgu-fees").url) == "https://vgu.ac.in/admission/fee-structure"
     try:
         get_source("missing")
     except KeyError as exc:
