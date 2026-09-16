@@ -19,14 +19,15 @@ class RobotsPolicy:
 
     @classmethod
     def from_text(cls, *, source_url: str, user_agent: str, robots_text: str) -> RobotsPolicy:
+        robots_url = urljoin(source_url, "/robots.txt")
         parser = RobotFileParser()
-        parser.set_url(urljoin(source_url, "/robots.txt"))
+        parser.set_url(robots_url)
         parser.parse(robots_text.splitlines())
         return cls(
             user_agent=user_agent,
-            robots_url=parser.url,
+            robots_url=robots_url,
             allowed=parser.can_fetch(user_agent, source_url),
-            sitemaps=tuple(parser.site_maps()),
+            sitemaps=tuple(parser.site_maps() or ()),
         )
 
     def require_allowed(self) -> None:

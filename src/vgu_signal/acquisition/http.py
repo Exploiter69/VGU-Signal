@@ -151,7 +151,7 @@ class HttpFetcher:
                 return max(0.0, float(retry_after))
             except ValueError:
                 try:
-                    retry_at = parsedate_to_datetime(retry_after).timestamp()
+                    retry_at = float(parsedate_to_datetime(retry_after).timestamp())
                     return max(0.0, retry_at - time.time())
                 except (TypeError, ValueError, OverflowError):
                     pass
