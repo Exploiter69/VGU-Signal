@@ -148,7 +148,8 @@ class HttpFetcher:
         retry_after = response.headers.get("retry-after")
         if retry_after:
             try:
-                return max(0.0, float(retry_after))
+                value = float(retry_after)
+                return value if value > 0 else 0.0
             except ValueError:
                 try:
                     retry_at = float(parsedate_to_datetime(retry_after).timestamp())
