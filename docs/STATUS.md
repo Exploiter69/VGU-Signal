@@ -4,7 +4,9 @@
 
 ## Current stage
 
-VGU Signal has completed the **Phase 0 repository foundation and implementation-planning baseline**. The repository bootstrap is implemented; the remaining Phase 0 exit condition is the final deterministic CI verification of the bootstrap against the current source tree.
+**Phase 0 — Repository foundation and contracts: COMPLETE.**
+
+The repository bootstrap, deterministic implementation skeleton, fixture/test foundation and CI quality gates are complete. The final Phase 0 verification revision passed the full CI gate, and the roadmap/status documentation has now been synchronized to that result.
 
 The repository contains the foundational product, architecture, trust, source, security and privacy contracts plus the concrete technical stack, quality gates, implementation plan, domain contracts, acquisition/extraction skeleton, source registry, migration foundation, fixtures/tests and CI workflow.
 
@@ -28,32 +30,32 @@ The repository contains the foundational product, architecture, trust, source, s
 - [x] Fixture/test foundation.
 - [x] Quality-gate specification.
 - [x] CI pipeline.
-- [x] Strict Python typing fixes for the bootstrap source tree.
-- [ ] Final CI pass on the current Phase 0 source tree.
+- [x] Strict Python typing for the bootstrap source tree.
+- [x] Final Ruff format check.
+- [x] Final Ruff lint check.
+- [x] Final mypy check.
+- [x] Final pytest suite.
+- [x] Final Worker typecheck.
 
-The CI gate is intentionally conjunctive:
+The verified Phase 0 CI run executed this complete gate on the same verification revision:
 
 ```text
-ruff format --check .
-        ↓
-ruff check .
-        ↓
-mypy src
-        ↓
-pytest -q
-        ↓
-worker npm run typecheck
+ruff format --check .   PASS
+ruff check .            PASS
+mypy src                 PASS
+pytest -q                PASS
+worker npm run typecheck PASS
 ```
-
-Phase 0 is not considered exited until every required check passes on the same revision.
 
 ## Phase 0 implementation baseline
 
-The repository now has the minimum deterministic implementation surface needed to begin the first real source/evidence vertical slice without reopening the core architecture. The source registry contains an initial official VGU resources entry; HTTP acquisition is bounded and hashes raw content; the domain layer defines source/evidence/document/claim contracts; HTML extraction is fixture-testable; and the initial D1 migration establishes source/evidence persistence primitives.
+The repository has the minimum deterministic implementation surface needed to begin the first real source/evidence vertical slice without reopening the core architecture. The source registry contains an initial official VGU resources entry; HTTP acquisition is bounded and hashes raw content; the domain layer defines source/evidence/document/claim contracts; HTML extraction is fixture-testable; and the initial D1 migration establishes source/evidence persistence primitives.
+
+The strict typing/test corrections made during verification are part of the baseline rather than deferred cleanup: URL fields are represented consistently with the domain contract, HTML link normalization is validated by fixture tests, and the source tree passes strict mypy.
 
 ## Phase 1 readiness
 
-Phase 1 remains blocked until the Phase 0 CI gate is green. Once green, implementation proceeds to **Source Discovery & Evidence Engine**:
+**Phase 1 is now unblocked.** The next implementation stage is **Source Discovery & Evidence Engine**:
 
 1. confirm and document the initial official source set;
 2. implement the source registry as the authoritative acquisition inventory;
@@ -62,6 +64,8 @@ Phase 1 remains blocked until the Phase 0 CI gate is green. Once green, implemen
 5. implement last-known-good behavior;
 6. add change detection and failure observability;
 7. validate the first real official VGU source end-to-end with committed fixtures.
+
+Phase 1 must preserve all Phase 0 invariants: official sources remain authoritative, evidence remains immutable/traceable, unsupported extraction cannot become a student-facing fact, and core operation remains compatible with the ₹0 / $0 requirement.
 
 ## Definition of success for the first usable release
 
