@@ -38,6 +38,15 @@ class Source(BaseModel):
     url: HttpUrl
     source_class: SourceClass = SourceClass.OFFICIAL
     enabled: bool = True
+    allowed_content_types: tuple[str, ...] = (
+        "text/html",
+        "application/xhtml+xml",
+        "application/pdf",
+        "text/plain",
+        "application/xml",
+        "text/xml",
+    )
+    respect_robots: bool = True
 
 
 class Evidence(BaseModel):

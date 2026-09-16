@@ -60,19 +60,21 @@ Initial source classes:
 
 Work:
 
-- [ ] Source registry.
-- [ ] HTTP acquisition adapter.
-- [ ] robots/sitemap policy handling.
-- [ ] HTTP status/content-type validation.
-- [ ] Raw content SHA-256 hashing.
-- [ ] Evidence metadata storage.
-- [ ] Last-Modified / ETag support where available.
-- [ ] Retry/backoff and rate limiting.
-- [ ] Last-known-good behavior.
-- [ ] Fixture-based source tests.
-- [ ] Failure observability.
+- [x] Source registry.
+- [x] HTTP acquisition adapter.
+- [x] robots/sitemap policy handling.
+- [x] HTTP status/content-type validation.
+- [x] Raw content SHA-256 hashing.
+- [x] Evidence metadata storage.
+- [x] Last-Modified / ETag support where available.
+- [x] Retry/backoff and rate limiting.
+- [x] Last-known-good behavior.
+- [x] Fixture-based source tests.
+- [x] Failure observability.
 
-**Exit gate:** the system can fetch known sources repeatedly, detect unchanged content, detect changed content, and preserve evidence without silently losing history.
+**Phase 1 implementation notes:** the official resources index is the initial discovery anchor for academic calendars and related documents; examination rules, public notice, fee and event pages/documents are explicitly registered. Conditional requests are opportunistic, with SHA-256 as the fallback change detector. Robots restrictions are honored and sitemap declarations are discovery metadata only. Failed acquisition leaves last-known-good evidence intact.
+
+**Exit gate:** COMPLETE. The deterministic acquisition layer can repeatedly fetch known sources under bounded HTTP behavior, detect unchanged and changed content, preserve immutable evidence history, honor robots policy, retain validators, retry transient failures and preserve last-known-good state after failures. The complete fixture-backed Phase 1 suite and the repository CI quality gate pass on the verification revision.
 
 ## Phase 2 — Deterministic extraction and normalization
 

@@ -4,80 +4,76 @@
 
 ## Current stage
 
-**Phase 0 — Repository foundation and contracts: COMPLETE.**
+**Phase 1 — Source Discovery & Evidence Engine: COMPLETE.**
 
-The repository bootstrap, deterministic implementation skeleton, fixture/test foundation and CI quality gates are complete. The final Phase 0 verification revision passed the full CI gate, and the roadmap/status documentation has now been synchronized to that result.
+Phase 0 remains closed and unchanged. Phase 1 has now implemented the first deterministic source/evidence layer: an explicit official-source inventory, bounded HTTP acquisition, robots/sitemap policy handling, content/status validation, raw SHA-256 identity, conditional requests, retry/backoff, rate limiting, immutable local evidence semantics, last-known-good behavior, acquisition failure reporting and fixture-backed regression tests.
 
-The repository contains the foundational product, architecture, trust, source, security and privacy contracts plus the concrete technical stack, quality gates, implementation plan, domain contracts, acquisition/extraction skeleton, source registry, migration foundation, fixtures/tests and CI workflow.
+## Phase 1 source inventory
 
-## Phase 0 verification checklist
+The admitted official public sources are documented in `docs/SOURCE_INVENTORY.md`:
 
-- [x] Repository foundation.
-- [x] Product thesis.
-- [x] Architecture.
-- [x] Trust model.
-- [x] Source strategy.
-- [x] Product scope and non-goals.
-- [x] Privacy/security boundaries.
-- [x] Concrete implementation stack.
-- [x] Python project configuration.
-- [x] Worker configuration and typecheck command.
-- [x] D1 migration foundation.
-- [x] Domain contracts.
-- [x] Acquisition skeleton.
-- [x] Extraction skeleton.
-- [x] Source registry.
-- [x] Fixture/test foundation.
-- [x] Quality-gate specification.
-- [x] CI pipeline.
-- [x] Strict Python typing for the bootstrap source tree.
-- [x] Final Ruff format check.
-- [x] Final Ruff lint check.
-- [x] Final mypy check.
-- [x] Final pytest suite.
-- [x] Final Worker typecheck.
+- VGU official resources / handbooks / academic-calendar index;
+- VGU Examination Rules 2.0 PDF;
+- VGU public CDOE notice PDF;
+- VGU public fee information page;
+- VGU public events page.
 
-The verified Phase 0 CI run executed this complete gate on the same verification revision:
+Academic-calendar documents are intentionally discovered from the official resources index rather than tied to a brittle filename. Authenticated ERP material and private student/community sources remain excluded.
+
+## Phase 1 implementation checklist
+
+- [x] Source registry with stable IDs and allowed media types.
+- [x] HTTP acquisition adapter.
+- [x] Bounded streaming response size.
+- [x] HTTP status validation.
+- [x] Content-type validation.
+- [x] Raw response SHA-256 hashing.
+- [x] ETag conditional requests.
+- [x] Last-Modified conditional requests.
+- [x] Retry/backoff for transient failures.
+- [x] `Retry-After` handling.
+- [x] Minimum request interval/rate limiting.
+- [x] Robots policy evaluation.
+- [x] Sitemap declaration parsing.
+- [x] Sitemap XML URL parsing.
+- [x] Immutable local evidence store semantics.
+- [x] Same-content deduplication.
+- [x] Changed-content history preservation.
+- [x] Last-known-good behavior after acquisition failure.
+- [x] Durable D1 acquisition-run metadata migration.
+- [x] Failure observability fields.
+- [x] Fixture-backed HTTP tests.
+- [x] Fixture-backed policy tests.
+- [x] Fixture-backed acquisition/change/failure tests.
+- [x] Source registry tests.
+- [x] Full CI quality gate after implementation and documentation synchronization.
+
+## Phase 1 exit gate
+
+The phase is considered closed only because the deterministic tests prove all required transitions without relying on the live VGU website:
 
 ```text
-ruff format --check .   PASS
-ruff check .            PASS
-mypy src                 PASS
-pytest -q                PASS
-worker npm run typecheck PASS
+first fetch       → FETCHED
+same raw hash     → UNCHANGED
+new raw hash      → CHANGED
+conditional 304   → UNCHANGED
+fetch failure     → FAILED + last-known-good preserved
 ```
 
-## Phase 0 implementation baseline
+Earlier evidence is never overwritten when a new content state arrives. A failed acquisition cannot erase the last-known-good evidence state.
 
-The repository has the minimum deterministic implementation surface needed to begin the first real source/evidence vertical slice without reopening the core architecture. The source registry contains an initial official VGU resources entry; HTTP acquisition is bounded and hashes raw content; the domain layer defines source/evidence/document/claim contracts; HTML extraction is fixture-testable; and the initial D1 migration establishes source/evidence persistence primitives.
+## Trust and safety invariants retained
 
-The strict typing/test corrections made during verification are part of the baseline rather than deferred cleanup: URL fields are represented consistently with the domain contract, HTML link normalization is validated by fixture tests, and the source tree passes strict mypy.
+- Official public VGU sources remain authoritative.
+- Evidence identity is based on exact raw bytes, not an AI interpretation.
+- Discovery does not equal publication or verification.
+- Robots restrictions are honored rather than bypassed.
+- Authenticated ERP and private WhatsApp data remain out of scope.
+- The Phase 1 core has no paid-service dependency.
+- Live website availability is not required for CI.
 
-## Phase 1 readiness
+## Phase 2 readiness
 
-**Phase 1 is now unblocked.** The next implementation stage is **Source Discovery & Evidence Engine**:
+**Phase 2 is now unblocked.** Its prerequisites are the stable source IDs, evidence IDs, raw-content history and deterministic acquisition outcomes produced by Phase 1.
 
-1. confirm and document the initial official source set;
-2. implement the source registry as the authoritative acquisition inventory;
-3. implement HTTP acquisition with robots/sitemap policy, conditional requests, retry/backoff and rate limits;
-4. persist immutable evidence and raw-content hashes;
-5. implement last-known-good behavior;
-6. add change detection and failure observability;
-7. validate the first real official VGU source end-to-end with committed fixtures.
-
-Phase 1 must preserve all Phase 0 invariants: official sources remain authoritative, evidence remains immutable/traceable, unsupported extraction cannot become a student-facing fact, and core operation remains compatible with the ₹0 / $0 requirement.
-
-## Definition of success for the first usable release
-
-A student can:
-
-1. subscribe without giving university credentials;
-2. receive a relevant official VGU update;
-3. see what changed and why it matters;
-4. open the original VGU source;
-5. distinguish current information from superseded/conflicting information;
-6. avoid duplicate alerts.
-
-## Important note
-
-The project should not be considered production-ready merely because the bot can scrape a page or send a Telegram message. The evidence and verification gates are part of the product, not optional polish.
+Phase 2 may now add PDF/HTML extraction, date/deadline extraction, event extraction, notice classification, academic-calendar normalization, source-relative identifiers and extraction quality signals. It must consume Phase 1 evidence rather than bypassing the acquisition layer.
