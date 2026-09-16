@@ -5,7 +5,6 @@ from typing import cast
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
-from bs4.element import Tag
 from pydantic import HttpUrl
 
 from vgu_signal.domain import Document
@@ -19,7 +18,7 @@ def extract_document(*, evidence_id: str, source_id: str, url: str, body: bytes)
         element.decompose()
 
     title = soup.title.get_text(" ", strip=True) if soup.title else "Untitled VGU document"
-    main = cast(Tag, soup.find("main") or soup.body or soup)
+    main = soup.find("main") or soup.body or soup
     text = " ".join(main.stripped_strings)
 
     links: list[HttpUrl] = []
