@@ -157,4 +157,4 @@ class HttpFetcher:
                     return delay if delay > 0 else 0.0
                 except (TypeError, ValueError, OverflowError):
                     pass
-        return self._retry_base_seconds * (2**attempt)
+        return float(self._retry_base_seconds) * float(2**attempt)
