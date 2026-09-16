@@ -73,9 +73,11 @@ Free infrastructure may be used where it is appropriate, but no critical compone
 
 ## Status
 
-**Architecture / documentation baseline. Implementation has not started yet.**
+**Phase 0 — Repository foundation and contracts: COMPLETE.**
 
-The roadmap is intentionally reliability-first: establish trustworthy source monitoring and evidence handling before adding AI-heavy or community-heavy features.
+The deterministic repository bootstrap is implemented and the full Phase 0 CI gate is green. The project is now ready to begin **Phase 1 — Source Discovery & Evidence Engine**. Phase 1 starts with real official-source inventory and acquisition/evidence behavior; it does not reopen the core architecture or trust model.
+
+The roadmap remains reliability-first: deterministic source monitoring and evidence handling come before AI-heavy or community-heavy features.
 
 ## License
 
