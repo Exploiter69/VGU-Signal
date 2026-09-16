@@ -24,6 +24,17 @@ VGU_RESOURCES = Source(
     allowed_content_types=_DEFAULT_TYPES,
 )
 
+VGU_ACADEMIC_CALENDAR_2026_27_FIRST_YEAR = Source(
+    id="vgu-academic-calendar-2026-27-first-year",
+    name="VGU academic calendar 2026-27 for first-year students",
+    url=cast(
+        HttpUrl,
+        "https://vgu.ac.in/assets/documents/footer/AcademicCalendar2026-27%28ForFirstYrStudents%29.pdf",
+    ),
+    source_class=SourceClass.OFFICIAL,
+    allowed_content_types=("application/pdf",),
+)
+
 VGU_EXAMINATION_RULES = Source(
     id="vgu-examination-rules",
     name="VGU examination rules",
@@ -34,8 +45,8 @@ VGU_EXAMINATION_RULES = Source(
 
 VGU_PUBLIC_NOTICE = Source(
     id="vgu-public-notice",
-    name="VGU public notice",
-    url=cast(HttpUrl, "https://www.vgu.ac.in/PUBLIC-NOTICE-FOR-CDOE.pdf"),
+    name="VGU public notice CDOE",
+    url=cast(HttpUrl, "https://vgu.ac.in/assets/documents/footer/PUBLIC-NOTICE-FOR-CDOE.pdf"),
     source_class=SourceClass.OFFICIAL,
     allowed_content_types=("application/pdf",),
 )
@@ -61,6 +72,7 @@ SOURCES = MappingProxyType(
         source.id: source
         for source in (
             VGU_RESOURCES,
+            VGU_ACADEMIC_CALENDAR_2026_27_FIRST_YEAR,
             VGU_EXAMINATION_RULES,
             VGU_PUBLIC_NOTICE,
             VGU_FEES,

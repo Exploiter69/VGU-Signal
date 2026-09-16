@@ -11,14 +11,15 @@ Only public VGU material is admitted as authoritative evidence. A source being l
 | ID | Source | URL | Expected media |
 | --- | --- | --- | --- |
 | `vgu-resources` | Official resources / handbooks / academic-calendar index | `https://vgu.ac.in/resources/handbook-brochures` | HTML/XHTML/PDF/XML/text |
+| `vgu-academic-calendar-2026-27-first-year` | Academic Calendar 2026-27 for first-year students | `https://vgu.ac.in/assets/documents/footer/AcademicCalendar2026-27%28ForFirstYrStudents%29.pdf` | PDF |
 | `vgu-examination-rules` | Examination Rules 2.0 | `https://vgu.ac.in/assets/documents/footer/ExamRules.pdf` | PDF |
-| `vgu-public-notice` | Public CDOE notice | `https://www.vgu.ac.in/PUBLIC-NOTICE-FOR-CDOE.pdf` | PDF |
+| `vgu-public-notice` | Public Notice CDOE | `https://vgu.ac.in/assets/documents/footer/PUBLIC-NOTICE-FOR-CDOE.pdf` | PDF |
 | `vgu-fees` | Public fee structure | `https://vgu.ac.in/admission/fee-structure` | HTML/XHTML |
 | `vgu-events` | Public campus events | `https://vgu.ac.in/campus-life/events` | HTML/XHTML |
 
 ## Why the resources index is important
 
-The official resources page exposes links for academic calendars, examination rules, handbooks and other student-facing documents. Academic-calendar PDFs should be discovered from that index rather than assuming that a filename observed today will remain stable forever.
+The official resources page exposes links for academic calendars, examination rules, handbooks and other student-facing documents. It currently lists the 2026-27 first-year calendar, an annual-scheme calendar, Examination Rules 2.0 and Public Notice CDOE. The acquisition layer therefore keeps the index as a discovery anchor while also admitting the stable direct documents that were verified during Phase 1.
 
 ## Discovery boundaries
 
@@ -44,4 +45,4 @@ Robots policy is evaluated before the source fetch. Sitemap declarations are par
 
 ## External confirmation
 
-The inventory was checked against the current public VGU site during Phase 1 implementation. The resources page currently exposes academic-calendar and examination-rule links; VGU also publishes public fee and events pages and a public CDOE notice PDF. Live availability is not part of CI, so fixture tests remain the release gate.
+The source URLs above were checked against the current public VGU site during Phase 1 implementation. The official resources page currently exposes the calendar, examination rules and public-notice entries; the fee and events pages are public VGU pages. Live availability is not part of CI, so fixture tests remain the release gate.

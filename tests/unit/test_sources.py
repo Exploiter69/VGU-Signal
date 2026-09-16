@@ -4,6 +4,7 @@ from vgu_signal.sources.registry import SOURCES, get_source
 def test_phase1_registry_contains_high_value_official_sources() -> None:
     assert {
         "vgu-resources",
+        "vgu-academic-calendar-2026-27-first-year",
         "vgu-examination-rules",
         "vgu-public-notice",
         "vgu-fees",
