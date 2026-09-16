@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from hashlib import sha256
 import time
+from collections.abc import Callable
+from dataclasses import dataclass
 from email.utils import parsedate_to_datetime
-from typing import Callable
+from hashlib import sha256
 
 import httpx
 

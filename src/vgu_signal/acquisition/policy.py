@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from urllib.parse import urljoin, urlparse
 from urllib.robotparser import RobotFileParser
-import xml.etree.ElementTree as ET
 
 
 class PolicyError(RuntimeError):

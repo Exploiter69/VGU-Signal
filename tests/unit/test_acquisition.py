@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 
@@ -33,7 +33,7 @@ def test_engine_fetches_then_detects_unchanged_content() -> None:
     engine = AcquisitionEngine(
         HttpFetcher(transport=httpx.MockTransport(handler)),
         store,
-        clock=lambda: datetime(2026, 9, 16, tzinfo=timezone.utc),
+        clock=lambda: datetime(2026, 9, 16, tzinfo=UTC),
     )
 
     first = engine.acquire(SOURCE)
@@ -58,8 +58,8 @@ def test_engine_preserves_history_when_content_changes() -> None:
 
     times = iter(
         (
-            datetime(2026, 9, 16, 10, tzinfo=timezone.utc),
-            datetime(2026, 9, 16, 11, tzinfo=timezone.utc),
+            datetime(2026, 9, 16, 10, tzinfo=UTC),
+            datetime(2026, 9, 16, 11, tzinfo=UTC),
         )
     )
     store = InMemoryEvidenceStore()

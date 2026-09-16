@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from collections.abc import Callable
+from datetime import UTC, datetime
 from enum import StrEnum
 from hashlib import sha256
-from typing import Callable
 from urllib.parse import urljoin
 
 from vgu_signal.acquisition.http import FetchError, HttpFetcher
@@ -52,7 +52,7 @@ class AcquisitionEngine:
     ) -> None:
         self._fetcher = fetcher
         self._store = store
-        self._clock = clock or (lambda: datetime.now(timezone.utc))
+        self._clock = clock or (lambda: datetime.now(UTC))
 
     def acquire(self, source: Source) -> AcquisitionResult:
         previous = self._store.latest(source.id)
