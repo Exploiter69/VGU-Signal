@@ -152,7 +152,8 @@ class HttpFetcher:
             except ValueError:
                 try:
                     retry_at = float(parsedate_to_datetime(retry_after).timestamp())
-                    return max(0.0, retry_at - time.time())
+                    delay = retry_at - time.time()
+                    return delay if delay > 0 else 0.0
                 except (TypeError, ValueError, OverflowError):
                     pass
         return self._retry_base_seconds * (2**attempt)
