@@ -155,17 +155,22 @@ def cross_source_similarity(
     output: list[ClaimRelationship] = []
     for index, left in enumerate(items):
         for right in items[index + 1 :]:
-            if left.source_id == right.source_id or left.fingerprint == right.fingerprint:
+            if left.source_id == right.source_id:
                 continue
             similarity = token_similarity(left.statement, right.statement)
             if similarity >= threshold:
+                reason = (
+                    "normalized statement is identical across sources"
+                    if left.fingerprint == right.fingerprint
+                    else "token-set similarity exceeded deterministic threshold"
+                )
                 output.append(
                     _relationship(
                         left,
                         right,
                         RelationshipKind.SIMILAR,
                         now,
-                        "token-set similarity exceeded deterministic threshold",
+                        reason,
                         similarity,
                     )
                 )
