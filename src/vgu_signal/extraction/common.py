@@ -4,7 +4,6 @@ import re
 from datetime import datetime
 from hashlib import sha256
 from typing import Final
-from urllib.parse import quote
 
 from vgu_signal.extraction.models import (
     ExtractedDate,
@@ -16,16 +15,43 @@ from vgu_signal.extraction.models import (
 PARSER_VERSION: Final[str] = "deterministic-v1"
 
 _MONTHS: Final[dict[str, int]] = {
-    "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6,
-    "july": 7, "august": 8, "september": 9, "october": 10, "november": 11, "december": 12,
+    "january": 1,
+    "february": 2,
+    "march": 3,
+    "april": 4,
+    "may": 5,
+    "june": 6,
+    "july": 7,
+    "august": 8,
+    "september": 9,
+    "october": 10,
+    "november": 11,
+    "december": 12,
 }
 _DATE_RE = re.compile(
-    r"\b(?P<day>\d{1,2})[\s./-]+(?P<month>[A-Za-z]{3,9}|\d{1,2})[\s./-]+(?P<year>20\d{2})\b"
+    r"\b(?P<day>\d{1,2})[\s./-]+(?P<month>[A-Za-z]{3,9}|\d{1,2})"
+    r"[\s./-]+(?P<year>20\d{2})\b"
 )
 _ISO_RE = re.compile(r"\b20\d{2}-\d{1,2}-\d{1,2}\b")
-
-_DEADLINE_TERMS = ("deadline", "due", "last date", "closes", "closing date", "submit by", "submission")
-_EVENT_TERMS = ("event", "seminar", "workshop", "webinar", "orientation", "fest", "conference", "ceremony")
+_DEADLINE_TERMS = (
+    "deadline",
+    "due",
+    "last date",
+    "closes",
+    "closing date",
+    "submit by",
+    "submission",
+)
+_EVENT_TERMS = (
+    "event",
+    "seminar",
+    "workshop",
+    "webinar",
+    "orientation",
+    "fest",
+    "conference",
+    "ceremony",
+)
 _CATEGORY_TERMS: tuple[tuple[NoticeCategory, tuple[str, ...]], ...] = (
     (NoticeCategory.EXAMINATION, ("exam", "examination", "semester end", "date sheet", "admit card")),
     (NoticeCategory.FEES, ("fee", "fees", "payment", "tuition", "scholarship fee")),
@@ -49,12 +75,9 @@ def source_relative_id(source_id: str, canonical_url: str, stable_key: str) -> s
 
 
 def _parse_date(day: int, month: str, year: int) -> datetime | None:
-    if month.isdigit():
-        month_number = int(month)
-    else:
-        month_number = _MONTHS.get(month.lower())
-        if month_number is None:
-            return None
+    month_number = int(month) if month.isdigit() else _MONTHS.get(month.lower())
+    if month_number is None:
+        return None
     try:
         return datetime(year, month_number, day)
     except ValueError:
@@ -73,7 +96,7 @@ def extract_dates(text: str) -> tuple[ExtractedDate, ...]:
         except ValueError:
             continue
         found.append(ExtractedDate(value=value, label="date", source_text=match.group(0), confidence=0.99))
-    unique: dict[tuple[datetime, str], ExtractedDate] = {(item.value, item.source_text): item for item in found}
+    unique = {(item.value, item.source_text): item for item in found}
     return tuple(sorted(unique.values(), key=lambda item: (item.value, item.source_text)))
 
 
@@ -81,15 +104,20 @@ def extract_deadlines(text: str) -> tuple[ExtractedDeadline, ...]:
     sentences = re.split(r"(?<=[.!?])\s+|\n", text)
     result: list[ExtractedDeadline] = []
     for sentence in sentences:
-        lowered = sentence.lower()
-        if not any(term in lowered for term in _DEADLINE_TERMS):
+        if not any(term in sentence.lower() for term in _DEADLINE_TERMS):
             continue
-        dates = extract_dates(sentence)
-        for date in dates:
+        for date in extract_dates(sentence):
             title = re.sub(r"\s+", " ", sentence).strip(" .:-")
             if len(title) > 180:
                 title = title[:177].rstrip() + "..."
-            result.append(ExtractedDeadline(title=title or "VGU deadline", due_at=date.value, source_text=sentence.strip(), confidence=0.88))
+            result.append(
+                ExtractedDeadline(
+                    title=title or "VGU deadline",
+                    due_at=date.value,
+                    source_text=sentence.strip(),
+                    confidence=0.88,
+                )
+            )
     return tuple(_dedupe_deadlines(result))
 
 
@@ -97,8 +125,7 @@ def extract_events(text: str) -> tuple[ExtractedEvent, ...]:
     sentences = re.split(r"(?<=[.!?])\s+|\n", text)
     result: list[ExtractedEvent] = []
     for sentence in sentences:
-        lowered = sentence.lower()
-        if not any(term in lowered for term in _EVENT_TERMS):
+        if not any(term in sentence.lower() for term in _EVENT_TERMS):
             continue
         dates = extract_dates(sentence)
         if not dates:
@@ -106,7 +133,14 @@ def extract_events(text: str) -> tuple[ExtractedEvent, ...]:
         title = re.sub(r"\s+", " ", sentence).strip(" .:-")
         if len(title) > 180:
             title = title[:177].rstrip() + "..."
-        result.append(ExtractedEvent(title=title or "VGU event", starts_at=dates[0].value, source_text=sentence.strip(), confidence=0.84))
+        result.append(
+            ExtractedEvent(
+                title=title or "VGU event",
+                starts_at=dates[0].value,
+                source_text=sentence.strip(),
+                confidence=0.84,
+            )
+        )
     return tuple(_dedupe_events(result))
 
 
