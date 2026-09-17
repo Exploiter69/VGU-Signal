@@ -28,16 +28,12 @@ def make_pdf(text: str, *, title: str = "Exam Rules") -> bytes:
 
 
 def test_dates_are_deterministic_and_ignore_invalid_dates() -> None:
-    dates = extract_dates(
-        "Exam on 20 September 2026; invalid 31 February 2026; ISO 2026-10-01."
-    )
+    dates = extract_dates("Exam on 20 September 2026; invalid 31 February 2026; ISO 2026-10-01.")
     assert [item.source_text for item in dates] == ["20 September 2026", "2026-10-01"]
 
 
 def test_all_supported_explicit_date_forms_are_parsed() -> None:
-    dates = extract_dates(
-        "01 January 2026; 02 Jan 2026; 03/03/2026; 04-04-2026; 05.05.2026"
-    )
+    dates = extract_dates("01 January 2026; 02 Jan 2026; 03/03/2026; 04-04-2026; 05.05.2026")
     assert [item.value.strftime("%Y-%m-%d") for item in dates] == [
         "2026-01-01",
         "2026-01-02",
