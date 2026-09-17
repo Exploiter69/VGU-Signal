@@ -1,4 +1,4 @@
-from __future__ import annotations
+from __future__
 
 from datetime import datetime
 from enum import StrEnum
@@ -95,7 +95,10 @@ class Provenance(BaseModel):
         state = self.state.value.lower().replace("_", " ")
         validity = ""
         if self.effective_from or self.effective_until:
-            validity = f"; effective {self.effective_from or 'unknown'} to {self.effective_until or 'open-ended'}"
+            validity = (
+                f"; effective {self.effective_from or 'unknown'} "
+                f"to {self.effective_until or 'open-ended'}"
+            )
         return (
             f"{state} claim {self.claim_id} from {self.source_id}; "
             f"evidence {self.evidence_id} ({self.evidence_hash[:12]}…){validity}; "
