@@ -1,9 +1,9 @@
-from __future__ import annotations
+from __future__
 
 import re
+from collections.abc import Iterable
 from datetime import datetime
 from hashlib import sha256
-from typing import Iterable
 from urllib.parse import urlsplit, urlunsplit
 
 from vgu_signal.extraction.models import ExtractedDocument
