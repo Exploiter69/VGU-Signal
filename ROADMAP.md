@@ -80,20 +80,22 @@ Work:
 
 **Goal:** turn source material into structured university information.
 
-- [ ] HTML extraction.
-- [ ] PDF text extraction with PyMuPDF.
-- [ ] pdfplumber fallback/cross-check.
-- [ ] OCR fallback for genuinely scanned/garbled documents.
-- [ ] Document metadata extraction.
-- [ ] Date/deadline extraction.
-- [ ] Event extraction.
-- [ ] Notice classification.
-- [ ] Academic calendar normalization.
-- [ ] Source-relative identifiers.
-- [ ] Parser versioning.
-- [ ] Extraction confidence/quality signals.
+- [x] HTML extraction.
+- [x] PDF text extraction with PyMuPDF.
+- [x] pdfplumber fallback/cross-check.
+- [x] OCR fallback for genuinely scanned/garbled documents.
+- [x] Document metadata extraction.
+- [x] Date/deadline extraction.
+- [x] Event extraction.
+- [x] Notice classification.
+- [x] Academic calendar normalization.
+- [x] Source-relative identifiers.
+- [x] Parser versioning.
+- [x] Extraction confidence/quality signals.
 
-**Exit gate:** structured records can be generated deterministically from fixtures and traced back to their source evidence.
+**Phase 2 implementation notes:** extraction consumes Phase 1 evidence bytes directly and never fetches live URLs. HTML parsing is deterministic and non-executing; PDF extraction is PyMuPDF-first with pdfplumber fallback/cross-check; sparse PDF text may fall back to locally invoked tesseract after deterministic page rendering. Dates, deadlines, events, classification and calendar rows are explicit deterministic candidates only. Source-relative identifiers are scoped by source and canonical URL. Parser versions are recorded in extracted documents, and quality records score, level, extraction kind, text length, page count and warnings. Unsupported media types fail closed. Fixtures cover primary, fallback, OCR, metadata, normalization, idempotency and failure paths without the live VGU website or paid services.
+
+**Exit gate:** COMPLETE. The deterministic extraction pipeline produces structured records from fixture evidence, retains the exact Phase 1 evidence/source provenance on every extracted document, covers HTML/PDF/pdfplumber/OCR/text dispatch and normalization paths, and passes the repository quality gate on the same synchronized revision.
 
 ## Phase 3 — Verification, deduplication and change history
 
