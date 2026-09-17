@@ -40,11 +40,13 @@ class CalendarEntry:
         return (self.id, self.label, self.start, self.end, self.source_text, self.confidence)
 
 
-_RANGE_RE = re.compile(
-    r"(?P<left>[^\n|]{2,120}?)\s*(?:to|–|—|-)\s*"
-    r"(?P<right>\d{1,2}[\s./-]+[A-Za-z]{3,9}[\s./-]+20\d{2})",
-    re.I,
-)
+def _calendar_label(line: str) -> str:
+    label = line
+    for date in extract_dates(line):
+        label = label.replace(date.source_text, " ")
+    label = re.sub(r"\b(?:to|through|until)\b", " ", label, flags=re.I)
+    label = re.sub(r"\s+", " ", label).strip(" :-|\t–—")
+    return label or "Academic calendar entry"
 
 
 def normalize_academic_calendar(
@@ -63,9 +65,7 @@ def normalize_academic_calendar(
             continue
         start = dates[0].value
         end = dates[1].value if len(dates) > 1 else None
-        label = re.sub(r"\s+", " ", _RANGE_RE.sub("", line)).strip(" :-|\t")
-        if not label or re.fullmatch(r"\d+[./-]\d+[./-]\d+", label):
-            label = "Academic calendar entry"
+        label = _calendar_label(line)
         key = f"{start.isoformat()}:{end.isoformat() if end else ''}:{label.lower()}"
         entry_id = source_relative_id(source_id, canonical_url, sha256(key.encode()).hexdigest())
         confidence = 0.94 if len(dates) >= 2 else 0.82
