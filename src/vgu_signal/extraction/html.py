@@ -17,9 +17,9 @@ from vgu_signal.extraction.common import (
     source_relative_id,
 )
 from vgu_signal.extraction.models import (
+    ExtractedDocument,
     ExtractionKind,
     ExtractionQuality,
-    ExtractedDocument,
     QualityLevel,
 )
 
