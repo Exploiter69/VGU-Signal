@@ -28,9 +28,7 @@ def make_pdf(text: str, *, title: str = "Exam Rules") -> bytes:
 
 
 def test_dates_are_deterministic_and_ignore_invalid_dates() -> None:
-    dates = extract_dates(
-        "Exam on 20 September 2026; invalid 31 February 2026; ISO 2026-10-01."
-    )
+    dates = extract_dates("Exam on 20 September 2026; invalid 31 February 2026; ISO 2026-10-01.")
     assert [item.source_text for item in dates] == ["20 September 2026", "2026-10-01"]
 
 
