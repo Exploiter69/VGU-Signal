@@ -44,184 +44,253 @@ fixture-backed tests
 
 ## Phase 1 — Source Discovery & Evidence Engine
 
-**Status: COMPLETE when the Phase 1 exit gate passes on the same revision as the documentation update.**
+Phase 1 is complete. Its source registry, acquisition policy, bounded HTTP behavior, immutable evidence history, conditional requests, robots/sitemap handling, failure observability and fixture suite are the prerequisite boundary for Phase 2.
+
+## Phase 2 — Deterministic extraction and normalization
+
+**Status: COMPLETE when the Phase 2 exit gate passes on the same revision as the roadmap/status synchronization.**
 
 ### Objective
 
-Reliably acquire a small, high-value set of official public VGU sources while preserving immutable evidence history and never replacing a last-known-good state with a transient failure.
+Turn accepted Phase 1 evidence into deterministic, structured university information without bypassing the evidence layer and without allowing extraction guesses to become facts.
 
 ### Prerequisites
 
 Before implementation:
 
-1. Phase 0 CI must be green on `main`.
-2. The source strategy and trust model must be frozen for this gate.
-3. Authenticated ERP pages, private WhatsApp groups and student credentials must remain excluded.
-4. Initial sources must be public and attributable to VGU.
-5. No paid API, proxy, crawler, browser service or hosted scraper may be required.
-6. Every live-source decision must be representable in fixtures so CI does not depend on the live VGU site.
+1. Phase 1 must be closed on `main` with stable source IDs and evidence IDs.
+2. Raw evidence history and last-known-good semantics must remain immutable.
+3. Extraction must accept evidence bytes plus their provenance; it must never fetch the live URL itself.
+4. Existing `httpx` acquisition behavior remains the only network boundary.
+5. HTML parsing uses BeautifulSoup; no browser automation is required for this phase.
+6. PDF extraction uses PyMuPDF first and pdfplumber as fallback/cross-check.
+7. OCR is optional and local-only through the tesseract CLI; no hosted OCR/API is permitted.
+8. Every fixture must be deterministic and runnable without the live VGU website.
+9. Unsupported content types fail closed.
+10. No AI/LLM is used for extraction, date interpretation, classification or calendar normalization.
 
-### Step 1 — Confirm the initial source inventory
+### Step 1 — Define the extraction contract
 
-The initial registry covers these high-value public source classes:
+Each extracted document carries:
 
-1. official resources / handbooks / academic-calendar index;
-2. examination rules;
-3. public university/CDOE notice material;
-4. public fee information;
-5. public events information.
+- stable document ID;
+- Phase 1 evidence ID;
+- source ID;
+- canonical source URL;
+- title;
+- published timestamp when explicitly available;
+- normalized body text;
+- resolved source links;
+- parser version;
+- extraction kind (`HTML`, `PDF`, `OCR`, `TEXT`);
+- deterministic metadata;
+- extracted dates;
+- extracted deadlines;
+- extracted events;
+- notice category;
+- source-relative identifier;
+- extraction quality score/level, text length, page count and warnings.
 
-Academic-calendar documents are discovered from the official resources index rather than hard-coding unstable document filenames. The index is itself an authoritative acquisition target; linked PDFs become evidence targets once discovered by the deterministic extraction layer in the next phase.
+The extraction model is intentionally separate from the later verified claim model. Extraction output is evidence-derived input, not publication authority.
 
-### Step 2 — Define acquisition policy
+### Step 2 — HTML extraction
 
-Every source must have:
+For HTML evidence:
 
-- stable source ID;
-- canonical URL;
-- official source classification;
-- allowed content types;
-- robots policy behavior;
-- bounded response size;
-- request timeout;
-- bounded retries;
-- exponential retry backoff;
-- `Retry-After` handling where supplied;
-- minimum request interval/rate limit;
-- conditional request metadata when previously observed.
+1. parse bytes with BeautifulSoup;
+2. remove executable/non-content `script`, `style`, `noscript` and `template` nodes;
+3. prefer `<main>`, then `<body>`, then the document root;
+4. normalize whitespace while preserving meaningful line boundaries;
+5. extract the `<title>` with a deterministic fallback;
+6. resolve relative links with the evidence URL;
+7. deduplicate links while preserving first-seen order;
+8. collect standard metadata tags (`name` and `property`);
+9. parse an explicit publication timestamp only when it is machine-readable;
+10. derive dates/deadlines/events/classification from extracted text.
 
-The acquisition layer must fail closed on unsupported content types and policy failures.
+No page is rendered or executed. Client-side content that is absent from the acquired HTML remains absent rather than guessed.
 
-### Step 3 — Implement HTTP acquisition
+### Step 3 — PDF primary extraction
 
-The HTTP adapter must:
+For PDF evidence:
 
-- follow normal HTTP redirects;
-- send an explicit identifying user agent;
-- stream the response instead of assuming an unbounded body;
-- enforce a maximum byte limit;
-- accept only successful 2xx responses or a valid 304 conditional response;
-- preserve ETag and Last-Modified values;
-- send `If-None-Match` and `If-Modified-Since` on later fetches;
-- retry only transient failures;
-- avoid retrying permanent 4xx failures;
-- expose failures as structured acquisition errors rather than publishing data.
+1. open bytes with PyMuPDF;
+2. extract text page-by-page in document order;
+3. collect PDF metadata;
+4. normalize extracted text;
+5. preserve page count;
+6. calculate quality from extracted text volume;
+7. run pdfplumber as a deterministic cross-check;
+8. use the longer extraction only when it is clearly more complete;
+9. record a warning whenever the two extractors disagree;
+10. retain the original evidence ID regardless of extraction result.
 
-### Step 4 — Implement robots and sitemap policy handling
+Parser versions are explicit so future parser changes cannot silently reinterpret historical evidence as though an older parser produced the new result.
 
-Before acquiring a source:
+### Step 4 — OCR fallback
 
-1. request the origin's `/robots.txt` through the same bounded HTTP adapter;
-2. evaluate the source URL with Python's standard robots parser;
-3. fail closed when the robots document explicitly disallows the configured user agent;
-4. capture sitemap declarations for future discovery;
-5. parse sitemap XML deterministically when a sitemap is supplied;
-6. never use sitemap discovery as permission to bypass robots rules.
+OCR is only attempted when ordinary PDF extraction remains genuinely sparse (fewer than 100 normalized characters).
 
-Robots and sitemap behavior is tested from fixtures. CI never needs the live VGU robots file.
+1. render each PDF page deterministically with PyMuPDF at a fixed DPI;
+2. invoke the locally installed `tesseract` CLI on PNG page bytes;
+3. combine page results in original order;
+4. normalize the OCR text;
+5. switch extraction kind to `OCR` and record the OCR parser version;
+6. if tesseract is unavailable, times out, or fails, retain the sparse result and emit a quality warning;
+7. never invent replacement text when OCR fails.
 
-### Step 5 — Validate and hash evidence
+OCR is a fallback, not a new authority. CI tests the fallback path by fixture and mocking the local OCR boundary where necessary; CI does not require tesseract to be installed.
 
-For every accepted 2xx response:
+### Step 5 — Document metadata
 
-- normalize the media type from `Content-Type`;
-- reject unsupported media types;
-- hash the exact raw response bytes with SHA-256;
-- capture fetch time and final response URL;
-- preserve HTTP status and content type;
-- preserve ETag and Last-Modified values;
-- assign a deterministic evidence ID derived from source ID + raw content hash.
+Metadata must be structured and deterministic:
 
-The raw hash is the change-detection primitive. Later extraction hashes may be added, but they must not replace the raw evidence identity.
+- HTML title and standard meta name/property pairs;
+- explicit machine-readable publication time when available;
+- PDF title/author/subject/keywords/creator/producer and other non-empty PyMuPDF metadata;
+- page count for PDFs;
+- canonical URL and source ID from Phase 1;
+- evidence ID and raw-content-derived document identity.
 
-### Step 6 — Persist immutable evidence metadata
+Metadata that cannot be parsed is retained as absent, not inferred.
 
-The evidence store must:
+### Step 6 — Date and deadline extraction
 
-- append new content states;
-- deduplicate an identical source/content hash;
-- retain earlier evidence records;
-- expose source history;
-- expose the latest evidence;
-- expose the last-known-good evidence;
-- never overwrite an old evidence state with a new body.
+Date extraction recognizes explicit, valid dates in the supported forms:
 
-D1 now has an `acquisition_runs` history table in addition to the existing immutable evidence table. Production raw bytes remain designed for R2 in the later infrastructure phase; Phase 1 proves the metadata and state semantics locally without requiring paid storage.
+- `DD Month YYYY`;
+- `DD Mon YYYY`;
+- numeric `DD/MM/YYYY`, `DD-MM-YYYY` and `DD.MM.YYYY` forms;
+- ISO `YYYY-MM-DD`.
 
-### Step 7 — Implement unchanged/changed behavior
+Invalid calendar dates are rejected. Duplicate date observations are removed deterministically.
 
-The acquisition result must distinguish:
+Deadline extraction is deliberately stricter: a date is considered a deadline candidate only when the surrounding sentence contains explicit deadline/submission language such as `deadline`, `due`, `last date`, `closing date`, `closes`, `submit by` or `submission`. The source sentence is retained with the candidate and a deterministic confidence signal. No missing time, date or timezone is guessed.
+
+### Step 7 — Event extraction
+
+Event candidates require both:
+
+- event language (`event`, `seminar`, `workshop`, `webinar`, `orientation`, `fest`, `conference`, `ceremony`); and
+- an explicit date in the same source sentence/row.
+
+The first explicit date becomes the start date. An end date is not inferred unless a later normalization layer has an explicit second date. The original sentence remains attached as evidence text.
+
+### Step 8 — Notice classification
+
+Classification is deterministic keyword scoring across title and normalized body text. Initial categories are:
+
+- ACADEMIC;
+- EXAMINATION;
+- FEES;
+- REGISTRATION;
+- EVENT;
+- HOLIDAY;
+- GENERAL;
+- UNKNOWN.
+
+When no category has a positive score, the result is `UNKNOWN`. This avoids forcing ambiguous documents into a student-facing category. Classification is an extraction signal, not verification.
+
+### Step 9 — Academic calendar normalization
+
+Calendar normalization consumes already extracted text rather than scraping a second source.
+
+For each explicit calendar row/line:
+
+1. locate one or more explicit dates;
+2. use the first as start and second as end when present;
+3. preserve the complete original row as `source_text`;
+4. derive a stable label from the row without inventing missing values;
+5. generate a source-relative deterministic ID from source, URL and normalized row identity;
+6. sort normalized entries by date, label and ID;
+7. deduplicate identical normalized entries;
+8. emit lower confidence for single-date rows than explicit date ranges.
+
+No semester, program, holiday meaning or missing date is guessed from context. Those semantics belong to later verification/student-model phases.
+
+### Step 10 — Source-relative identifiers
+
+IDs must remain scoped to the source. The identifier input includes:
 
 ```text
-first successful fetch → FETCHED
-same raw hash          → UNCHANGED
-new raw hash           → CHANGED
-304 with prior state   → UNCHANGED
-transient/permanent failure → FAILED
+source_id + canonical_url + stable_key
 ```
 
-A failed fetch must return the prior evidence as `last_known_good` and must not delete or downgrade it.
+The stable key is derived from deterministic evidence content or an explicit normalized row key. The same input must produce the same ID; changing the source scope must produce a different ID. These identifiers are not substitutes for Phase 1 evidence IDs.
 
-### Step 8 — Failure observability
+### Step 11 — Parser versioning
 
-Every acquisition attempt must expose:
+Every extracted document records a parser version. Parser versions are constants in code and change when extraction semantics change materially. Document IDs include the parser version so historical extraction results are not silently conflated across parser revisions.
 
-- source ID;
-- result status;
-- evidence ID when available;
-- last-known-good evidence ID when available;
-- error text when failed.
+### Step 12 — Extraction confidence and quality
 
-D1 acquisition-run records provide the durable operational history needed for later health reporting. Telegram notifications are deliberately not part of this phase.
+Quality is explicit and machine-readable:
 
-### Step 9 — Fixture-backed tests
+- `HIGH`: substantial text extraction;
+- `MEDIUM`: usable but incomplete/small extraction;
+- `LOW`: sparse extraction;
+- `FAILED`: no usable text.
 
-The Phase 1 test suite must cover:
+Each result records a normalized score, text length, page count when applicable, extraction kind and warnings. Quality warnings cover extractor disagreement, failed fallbacks and unavailable OCR. Quality never upgrades an unsupported or unverified record into a verified claim.
 
-- successful HTML acquisition;
-- SHA-256 hashing;
-- content-type validation;
-- response-size limits;
-- permanent HTTP failures;
-- transient HTTP retry;
-- conditional GET headers;
-- 304 handling;
-- robots allow/deny;
-- sitemap XML parsing;
-- identical-content deduplication;
-- changed-content history preservation;
-- last-known-good after failure;
-- source registry completeness.
+### Step 13 — Dispatcher and fail-closed behavior
 
-No Phase 1 test should require VGU's live website.
+The extraction dispatcher selects the parser from normalized media type:
 
-### Step 10 — Exit gate
+```text
+text/html, application/xhtml+xml → HTML
+application/pdf                  → PDF → optional OCR
+text/plain, application/xml      → deterministic text
+unsupported media                → ERROR
+```
 
-Phase 1 is complete only when all of the following are true on one verified revision:
+The dispatcher does not perform network access. It accepts the Phase 1 evidence body directly.
 
-- [x] initial official source inventory is registered;
-- [x] HTTP acquisition adapter is bounded and deterministic under test;
-- [x] robots policy handling is implemented;
-- [x] sitemap parsing/metadata handling is implemented;
-- [x] HTTP status validation is implemented;
-- [x] content-type validation is implemented;
-- [x] raw SHA-256 hashing is implemented;
-- [x] ETag / Last-Modified conditional requests are implemented;
-- [x] retry/backoff and rate limiting are implemented;
-- [x] immutable evidence metadata storage is implemented;
-- [x] unchanged/changed detection is implemented;
-- [x] last-known-good behavior is implemented;
-- [x] acquisition failure observability is implemented;
-- [x] fixture-backed Phase 1 tests pass;
-- [x] full Ruff, mypy, pytest and Worker CI remains green;
-- [x] roadmap and status documentation are synchronized.
+### Step 14 — Fixture strategy
 
-The gate proves the core invariant:
+The Phase 2 fixtures cover:
 
-> A source can fail, change or return unchanged content without silently destroying the previous evidence history.
+- HTML with navigation, scripts, styles, relative links, metadata and dates;
+- valid/invalid date strings;
+- deadline language with positive and negative examples;
+- event language with positive and negative examples;
+- each notice classification category plus UNKNOWN;
+- a generated text PDF with metadata and extractable content;
+- PDF extraction quality and parser version;
+- sparse-PDF/OCR fallback behavior;
+- source-relative ID stability and source scoping;
+- calendar rows, date ranges, duplicates and deterministic ordering;
+- dispatcher routing and unsupported-media fail-closed behavior.
 
-## Phase 2 — Deterministic extraction and normalization
+Tests must run without VGU network access, paid services or a preinstalled OCR binary.
 
-Phase 2 begins only after the Phase 1 gate is closed. Its prerequisites are the stable evidence IDs, source registry and raw-content history produced here.
+### Step 15 — Phase 2 exit gate
 
-Planned work remains the roadmap's existing HTML/PDF extraction, metadata, date/deadline, event, notice classification, normalization, parser versioning and extraction-quality signals.
+Phase 2 is closed only when one verified revision demonstrates:
+
+- [x] HTML extraction;
+- [x] PDF text extraction with PyMuPDF;
+- [x] pdfplumber fallback/cross-check;
+- [x] OCR fallback for sparse/scanned material;
+- [x] document metadata extraction;
+- [x] date/deadline extraction;
+- [x] event extraction;
+- [x] notice classification;
+- [x] academic-calendar normalization;
+- [x] source-relative identifiers;
+- [x] parser versioning;
+- [x] extraction confidence/quality signals;
+- [x] evidence/source provenance retained on every extracted record;
+- [x] deterministic fixture coverage for all paths;
+- [x] unsupported media types fail closed;
+- [x] full Ruff format/lint, mypy and pytest pass;
+- [x] Worker typecheck remains green;
+- [x] roadmap, status, implementation plan and quality gate documentation are synchronized.
+
+The core invariant is:
+
+> Extraction may produce structured candidates, but it may never manufacture authority. Every extracted record remains tied to the exact Phase 1 evidence that produced it.
+
+## Phase 3 and later
+
+Phases 3–10 remain unchanged from the roadmap. Phase 3 begins only after this extraction gate is closed and consumes these deterministic records for verification, deduplication, conflict handling and change history.
