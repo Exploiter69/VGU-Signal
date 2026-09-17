@@ -17,10 +17,17 @@ from vgu_signal.extraction.common import (
     normalize_text,
     source_relative_id,
 )
-from vgu_signal.extraction.models import ExtractionKind, ExtractionQuality, ExtractedDocument, QualityLevel
+from vgu_signal.extraction.models import (
+    ExtractionKind,
+    ExtractionQuality,
+    ExtractedDocument,
+    QualityLevel,
+)
 
 
-def extract_document(*, evidence_id: str, source_id: str, url: str, body: bytes) -> ExtractedDocument:
+def extract_document(
+    *, evidence_id: str, source_id: str, url: str, body: bytes
+) -> ExtractedDocument:
     soup = BeautifulSoup(body, "html.parser")
     for element in soup(["script", "style", "noscript", "template"]):
         element.decompose()

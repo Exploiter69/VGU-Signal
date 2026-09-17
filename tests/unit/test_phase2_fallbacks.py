@@ -83,7 +83,9 @@ def test_sparse_pdf_ocr_failure_preserves_sparse_text_and_warning(monkeypatch) -
     assert result.extraction_kind == ExtractionKind.PDF
     assert result.body_text == "x"
     assert result.quality.level == QualityLevel.LOW
-    assert any("OCR was unavailable or unsuccessful" in warning for warning in result.quality.warnings)
+    assert any(
+        "OCR was unavailable or unsuccessful" in warning for warning in result.quality.warnings
+    )
 
 
 def test_html_metadata_links_and_script_removal_are_deterministic() -> None:

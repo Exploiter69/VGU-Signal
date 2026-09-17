@@ -1,11 +1,19 @@
-from .common import classify_notice, extract_dates, extract_deadlines, extract_events, normalize_text, source_relative_id
+from .common import (
+    classify_notice,
+    extract_dates,
+    extract_deadlines,
+    extract_events,
+    normalize_text,
+    source_relative_id,
+)
+from .html import extract_document
 from .models import (
-    ExtractionKind,
-    ExtractionQuality,
     ExtractedDate,
     ExtractedDeadline,
     ExtractedDocument,
     ExtractedEvent,
+    ExtractionKind,
+    ExtractionQuality,
     NoticeCategory,
     QualityLevel,
 )
@@ -31,5 +39,3 @@ __all__ = [
     "normalize_text",
     "source_relative_id",
 ]
-
-from .html import extract_document

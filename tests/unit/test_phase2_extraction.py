@@ -35,7 +35,9 @@ def test_dates_are_deterministic_and_ignore_invalid_dates() -> None:
 
 
 def test_all_supported_explicit_date_forms_are_parsed() -> None:
-    dates = extract_dates("01 January 2026; 02 Jan 2026; 03/03/2026; 04-04-2026; 05.05.2026")
+    dates = extract_dates(
+        "01 January 2026; 02 Jan 2026; 03/03/2026; 04-04-2026; 05.05.2026"
+    )
     assert [item.value.strftime("%Y-%m-%d") for item in dates] == [
         "2026-01-01",
         "2026-01-02",
