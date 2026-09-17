@@ -28,9 +28,7 @@ def make_pdf(text: str, *, title: str = "Exam Rules") -> bytes:
 
 
 def test_dates_are_deterministic_and_ignore_invalid_dates() -> None:
-    dates = extract_dates(
-        "Exam on 20 September 2026; invalid 31 February 2026; ISO 2026-10-01."
-    )
+    dates = extract_dates("Exam on 20 September 2026; invalid 31 February 2026; ISO 2026-10-01.")
     assert [item.source_text for item in dates] == ["20 September 2026", "2026-10-01"]
 
 
@@ -86,7 +84,11 @@ def test_source_relative_identifier_is_stable_and_source_scoped() -> None:
 
 
 def test_pdf_primary_extraction_metadata_and_quality() -> None:
-    body = make_pdf("Exam form submission closes on 20 September 2026.")
+    body = make_pdf(
+        "Exam form submission closes on 20 September 2026. "
+        "Students must verify the examination registration details before submission. "
+        "Late submission may not be accepted by the university examination cell."
+    )
     result = extract_pdf(
         evidence_id="ev-pdf",
         source_id="exam-rules",
