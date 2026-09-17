@@ -16,17 +16,29 @@ PARSER_VERSION: Final[str] = "deterministic-v1"
 
 _MONTHS: Final[dict[str, int]] = {
     "january": 1,
+    "jan": 1,
     "february": 2,
+    "feb": 2,
     "march": 3,
+    "mar": 3,
     "april": 4,
+    "apr": 4,
     "may": 5,
     "june": 6,
+    "jun": 6,
     "july": 7,
+    "jul": 7,
     "august": 8,
+    "aug": 8,
     "september": 9,
+    "sep": 9,
+    "sept": 9,
     "october": 10,
+    "oct": 10,
     "november": 11,
+    "nov": 11,
     "december": 12,
+    "dec": 12,
 }
 _DATE_RE = re.compile(
     r"\b(?P<day>\d{1,2})[\s./-]+(?P<month>[A-Za-z]{3,9}|\d{1,2})"
@@ -96,7 +108,9 @@ def _parse_date(day: int, month: str, year: int) -> datetime | None:
 def extract_dates(text: str) -> tuple[ExtractedDate, ...]:
     found: list[ExtractedDate] = []
     for match in _DATE_RE.finditer(text):
-        value = _parse_date(int(match.group("day")), match.group("month"), int(match.group("year")))
+        value = _parse_date(
+            int(match.group("day")), match.group("month"), int(match.group("year"))
+        )
         if value is not None:
             found.append(
                 ExtractedDate(

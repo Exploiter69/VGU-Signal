@@ -84,7 +84,11 @@ def test_source_relative_identifier_is_stable_and_source_scoped() -> None:
 
 
 def test_pdf_primary_extraction_metadata_and_quality() -> None:
-    body = make_pdf("Exam form submission closes on 20 September 2026.")
+    body = make_pdf(
+        "Exam form submission closes on 20 September 2026. "
+        "Students must verify the examination registration details before submission. "
+        "Late submission may not be accepted by the university examination cell."
+    )
     result = extract_pdf(
         evidence_id="ev-pdf",
         source_id="exam-rules",
