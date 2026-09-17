@@ -81,6 +81,10 @@ def claims_from_document(
     observed_at: datetime,
 ) -> tuple[EvidenceClaim, ...]:
     """Create evidence-backed candidates. Nothing here marks a claim verified."""
+    # Validate that the caller supplies an evidence identity, even though the raw hash is
+    # retained by the upstream Evidence record rather than duplicated into every claim.
+    if not re.fullmatch(r"[0-9a-f]{64}", evidence_hash):
+        raise ValueError("evidence_hash must be a lowercase SHA-256 hex digest")
     statements: list[tuple[str, datetime | None, datetime | None]] = []
     for item in document.deadlines:
         statements.append((item.source_text, item.due_at, None))
@@ -134,8 +138,7 @@ def same_content_relationships(
                 output.append(
                     _relationship(
                         left, right, RelationshipKind.SAME_CONTENT, now,
-                        "normalized statement fingerprint is identical",
-                        1.0,
+                        "normalized statement fingerprint is identical", 1.0,
                     )
                 )
     return tuple(output)
@@ -163,10 +166,40 @@ def cross_source_similarity(
     return tuple(output)
 
 
+def detect_conflicts(
+    claims: Iterable[EvidenceClaim], now: datetime, threshold: float = 0.65
+) -> tuple[ClaimRelationship, ...]:
+    """Flag high-overlap, same-source claims that are not identical.
+
+    This intentionally emits a reviewable relationship rather than selecting a winner.
+    Different sources are handled as similarity only; conflict requires a shared source
+    because independent-source disagreement needs a later policy decision.
+    """
+    if not 0 < threshold <= 1:
+        raise ValueError("threshold must be in (0, 1]")
+    items = list(claims)
+    output: list[ClaimRelationship] = []
+    for index, left in enumerate(items):
+        for right in items[index + 1 :]:
+            if left.source_id != right.source_id or left.fingerprint == right.fingerprint:
+                continue
+            similarity = token_similarity(left.statement, right.statement)
+            if similarity >= threshold:
+                output.append(
+                    _relationship(
+                        left, right, RelationshipKind.CONFLICTS, now,
+                        "same-source claims overlap but have different normalized statements",
+                        similarity,
+                    )
+                )
+    return tuple(output)
+
+
 def detect_url_replacements(
     old: ExtractedDocument, new: ExtractedDocument, now: datetime
 ) -> bool:
     """Detect a logical source-relative document moving to a different URL."""
+    del now
     return (
         old.source_id == new.source_id
         and old.source_relative_id == new.source_relative_id
@@ -192,6 +225,25 @@ def verify_claim(claim: EvidenceClaim, available_evidence_ids: Iterable[str], no
         decided_at=now,
     )
 
+_ALLOWED_TRANSITIONS: dict[VerificationState, frozenset[VerificationState]] = {
+    VerificationState.UNVERIFIED: frozenset({VerificationState.VERIFIED, VerificationState.CONFLICTING, VerificationState.REMOVED}),
+    VerificationState.VERIFIED: frozenset({VerificationState.CONFLICTING, VerificationState.SUPERSEDED, VerificationState.EXPIRED, VerificationState.REMOVED}),
+    VerificationState.CONFLICTING: frozenset({VerificationState.VERIFIED, VerificationState.SUPERSEDED, VerificationState.EXPIRED, VerificationState.REMOVED}),
+    VerificationState.SUPERSEDED: frozenset(),
+    VerificationState.EXPIRED: frozenset({VerificationState.VERIFIED, VerificationState.REMOVED}),
+    VerificationState.REMOVED: frozenset(),
+}
+
+
+def transition_state(
+    current: VerificationState, target: VerificationState
+) -> VerificationState:
+    if target == current:
+        return current
+    if target not in _ALLOWED_TRANSITIONS[current]:
+        raise ValueError(f"illegal verification transition: {current.value} -> {target.value}")
+    return target
+
 
 def resolve_state(
     claim: EvidenceClaim,
@@ -202,12 +254,14 @@ def resolve_state(
     superseded: bool = False,
 ) -> VerificationState:
     if conflicting:
-        return VerificationState.CONFLICTING
-    if superseded:
-        return VerificationState.SUPERSEDED
-    if expired:
-        return VerificationState.EXPIRED
-    return VerificationState.VERIFIED if verified else VerificationState.UNVERIFIED
+        target = VerificationState.CONFLICTING
+    elif superseded:
+        target = VerificationState.SUPERSEDED
+    elif expired:
+        target = VerificationState.EXPIRED
+    else:
+        target = VerificationState.VERIFIED if verified else VerificationState.UNVERIFIED
+    return transition_state(claim.state, target)
 
 
 def provenance(
