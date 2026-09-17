@@ -28,7 +28,9 @@ def make_pdf(text: str, *, title: str = "Exam Rules") -> bytes:
 
 
 def test_dates_are_deterministic_and_ignore_invalid_dates() -> None:
-    dates = extract_dates("Exam on 20 September 2026; invalid 31 February 2026; ISO 2026-10-01.")
+    dates = extract_dates(
+        "Exam on 20 September 2026; invalid 31 February 2026; ISO 2026-10-01."
+    )
     assert [item.source_text for item in dates] == ["20 September 2026", "2026-10-01"]
 
 
@@ -47,7 +49,10 @@ def test_event_extraction_requires_event_language() -> None:
 
 
 def test_notice_classification_is_deterministic() -> None:
-    assert classify_notice("Examination date sheet and admit card notice") == NoticeCategory.EXAMINATION
+    assert (
+        classify_notice("Examination date sheet and admit card notice")
+        == NoticeCategory.EXAMINATION
+    )
     assert classify_notice("Fee payment deadline") == NoticeCategory.FEES
     assert classify_notice("Campus orientation event") == NoticeCategory.EVENT
     assert classify_notice("A completely unrelated sentence") == NoticeCategory.UNKNOWN
