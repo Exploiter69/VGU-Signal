@@ -1,5 +1,3 @@
-from __future__
-
 import re
 from collections.abc import Iterable
 from datetime import datetime
