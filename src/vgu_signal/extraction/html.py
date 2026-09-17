@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from hashlib import sha256
 from typing import cast
 from urllib.parse import urljoin
@@ -15,10 +16,17 @@ from vgu_signal.extraction.common import (
     extract_events,
     source_relative_id,
 )
-from vgu_signal.extraction.models import ExtractionKind, ExtractionQuality, ExtractedDocument, QualityLevel
+from vgu_signal.extraction.models import (
+    ExtractionKind,
+    ExtractionQuality,
+    ExtractedDocument,
+    QualityLevel,
+)
 
 
-def extract_document(*, evidence_id: str, source_id: str, url: str, body: bytes) -> ExtractedDocument:
+def extract_document(
+    *, evidence_id: str, source_id: str, url: str, body: bytes
+) -> ExtractedDocument:
     soup = BeautifulSoup(body, "html.parser")
     for element in soup(["script", "style", "noscript", "template"]):
         element.decompose()
@@ -47,7 +55,6 @@ def extract_document(*, evidence_id: str, source_id: str, url: str, body: bytes)
     published_at = None
     for key, value in metadata:
         if key in {"article:published_time", "date", "publish-date", "datepublished"}:
-            from datetime import datetime
             try:
                 published_at = datetime.fromisoformat(value.replace("Z", "+00:00"))
             except ValueError:
@@ -59,8 +66,16 @@ def extract_document(*, evidence_id: str, source_id: str, url: str, body: bytes)
     document_id = sha256(f"{source_id}:{url}:{raw_hash}:{PARSER_VERSION}".encode()).hexdigest()
     dates = extract_dates(text)
     score = 0.98 if len(text) >= 400 else 0.80 if len(text) >= 100 else 0.45 if text else 0.0
+    if score >= 0.9:
+        level = QualityLevel.HIGH
+    elif score >= 0.7:
+        level = QualityLevel.MEDIUM
+    elif score:
+        level = QualityLevel.LOW
+    else:
+        level = QualityLevel.FAILED
     quality = ExtractionQuality(
-        level=QualityLevel.HIGH if score >= 0.9 else QualityLevel.MEDIUM if score >= 0.7 else QualityLevel.LOW if score else QualityLevel.FAILED,
+        level=level,
         score=score,
         text_length=len(text),
         page_count=None,
