@@ -39,7 +39,9 @@ def relationship_id(left: str, right: str, kind: RelationshipKind) -> str:
 
 def canonicalize_url(url: str) -> str:
     parts = urlsplit(url)
-    return urlunsplit((parts.scheme.casefold(), parts.netloc.casefold(), parts.path or "/", parts.query, ""))
+    return urlunsplit(
+        (parts.scheme.casefold(), parts.netloc.casefold(), parts.path or "/", parts.query, "")
+    )
 
 
 def url_identity(url: str) -> str:
@@ -81,8 +83,6 @@ def claims_from_document(
     observed_at: datetime,
 ) -> tuple[EvidenceClaim, ...]:
     """Create evidence-backed candidates. Nothing here marks a claim verified."""
-    # Validate that the caller supplies an evidence identity, even though the raw hash is
-    # retained by the upstream Evidence record rather than duplicated into every claim.
     if not re.fullmatch(r"[0-9a-f]{64}", evidence_hash):
         raise ValueError("evidence_hash must be a lowercase SHA-256 hex digest")
     statements: list[tuple[str, datetime | None, datetime | None]] = []
@@ -137,8 +137,12 @@ def same_content_relationships(
             if left.fingerprint == right.fingerprint and left.id != right.id:
                 output.append(
                     _relationship(
-                        left, right, RelationshipKind.SAME_CONTENT, now,
-                        "normalized statement fingerprint is identical", 1.0,
+                        left,
+                        right,
+                        RelationshipKind.SAME_CONTENT,
+                        now,
+                        "normalized statement fingerprint is identical",
+                        1.0,
                     )
                 )
     return tuple(output)
@@ -159,8 +163,12 @@ def cross_source_similarity(
             if similarity >= threshold:
                 output.append(
                     _relationship(
-                        left, right, RelationshipKind.SIMILAR, now,
-                        "token-set similarity exceeded deterministic threshold", similarity,
+                        left,
+                        right,
+                        RelationshipKind.SIMILAR,
+                        now,
+                        "token-set similarity exceeded deterministic threshold",
+                        similarity,
                     )
                 )
     return tuple(output)
@@ -169,12 +177,7 @@ def cross_source_similarity(
 def detect_conflicts(
     claims: Iterable[EvidenceClaim], now: datetime, threshold: float = 0.65
 ) -> tuple[ClaimRelationship, ...]:
-    """Flag high-overlap, same-source claims that are not identical.
-
-    This intentionally emits a reviewable relationship rather than selecting a winner.
-    Different sources are handled as similarity only; conflict requires a shared source
-    because independent-source disagreement needs a later policy decision.
-    """
+    """Flag high-overlap, same-source claims that are not identical."""
     if not 0 < threshold <= 1:
         raise ValueError("threshold must be in (0, 1]")
     items = list(claims)
@@ -187,7 +190,10 @@ def detect_conflicts(
             if similarity >= threshold:
                 output.append(
                     _relationship(
-                        left, right, RelationshipKind.CONFLICTS, now,
+                        left,
+                        right,
+                        RelationshipKind.CONFLICTS,
+                        now,
                         "same-source claims overlap but have different normalized statements",
                         similarity,
                     )
@@ -195,9 +201,7 @@ def detect_conflicts(
     return tuple(output)
 
 
-def detect_url_replacements(
-    old: ExtractedDocument, new: ExtractedDocument, now: datetime
-) -> bool:
+def detect_url_replacements(old: ExtractedDocument, new: ExtractedDocument, now: datetime) -> bool:
     """Detect a logical source-relative document moving to a different URL."""
     del now
     return (
@@ -207,7 +211,9 @@ def detect_url_replacements(
     )
 
 
-def verify_claim(claim: EvidenceClaim, available_evidence_ids: Iterable[str], now: datetime) -> VerificationDecision:
+def verify_claim(
+    claim: EvidenceClaim, available_evidence_ids: Iterable[str], now: datetime
+) -> VerificationDecision:
     evidence = tuple(dict.fromkeys(available_evidence_ids))
     if claim.evidence_id not in evidence:
         return VerificationDecision(
@@ -225,19 +231,34 @@ def verify_claim(claim: EvidenceClaim, available_evidence_ids: Iterable[str], no
         decided_at=now,
     )
 
+
 _ALLOWED_TRANSITIONS: dict[VerificationState, frozenset[VerificationState]] = {
-    VerificationState.UNVERIFIED: frozenset({VerificationState.VERIFIED, VerificationState.CONFLICTING, VerificationState.REMOVED}),
-    VerificationState.VERIFIED: frozenset({VerificationState.CONFLICTING, VerificationState.SUPERSEDED, VerificationState.EXPIRED, VerificationState.REMOVED}),
-    VerificationState.CONFLICTING: frozenset({VerificationState.VERIFIED, VerificationState.SUPERSEDED, VerificationState.EXPIRED, VerificationState.REMOVED}),
+    VerificationState.UNVERIFIED: frozenset(
+        {VerificationState.VERIFIED, VerificationState.CONFLICTING, VerificationState.REMOVED}
+    ),
+    VerificationState.VERIFIED: frozenset(
+        {
+            VerificationState.CONFLICTING,
+            VerificationState.SUPERSEDED,
+            VerificationState.EXPIRED,
+            VerificationState.REMOVED,
+        }
+    ),
+    VerificationState.CONFLICTING: frozenset(
+        {
+            VerificationState.VERIFIED,
+            VerificationState.SUPERSEDED,
+            VerificationState.EXPIRED,
+            VerificationState.REMOVED,
+        }
+    ),
     VerificationState.SUPERSEDED: frozenset(),
     VerificationState.EXPIRED: frozenset({VerificationState.VERIFIED, VerificationState.REMOVED}),
     VerificationState.REMOVED: frozenset(),
 }
 
 
-def transition_state(
-    current: VerificationState, target: VerificationState
-) -> VerificationState:
+def transition_state(current: VerificationState, target: VerificationState) -> VerificationState:
     if target == current:
         return current
     if target not in _ALLOWED_TRANSITIONS[current]:
@@ -295,7 +316,10 @@ def correction_relationship(
     corrected: EvidenceClaim, correction: EvidenceClaim, now: datetime
 ) -> ClaimRelationship:
     return _relationship(
-        corrected, correction, RelationshipKind.CORRECTS, now,
+        corrected,
+        correction,
+        RelationshipKind.CORRECTS,
+        now,
         "new claim explicitly corrects an earlier claim",
     )
 
@@ -304,7 +328,10 @@ def supersession_relationship(
     old: EvidenceClaim, new: EvidenceClaim, now: datetime
 ) -> ClaimRelationship:
     return _relationship(
-        old, new, RelationshipKind.SUPERSEDES, now,
+        old,
+        new,
+        RelationshipKind.SUPERSEDES,
+        now,
         "new claim supersedes the earlier claim",
     )
 
@@ -313,7 +340,10 @@ def conflict_relationship(
     left: EvidenceClaim, right: EvidenceClaim, now: datetime
 ) -> ClaimRelationship:
     return _relationship(
-        left, right, RelationshipKind.CONFLICTS, now,
+        left,
+        right,
+        RelationshipKind.CONFLICTS,
+        now,
         "claims describe the same logical subject with incompatible statements",
     )
 
