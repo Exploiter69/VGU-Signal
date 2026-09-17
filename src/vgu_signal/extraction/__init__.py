@@ -8,12 +8,12 @@ from .common import (
 )
 from .html import extract_document
 from .models import (
-    ExtractionKind,
-    ExtractionQuality,
     ExtractedDate,
     ExtractedDeadline,
     ExtractedDocument,
     ExtractedEvent,
+    ExtractionKind,
+    ExtractionQuality,
     NoticeCategory,
     QualityLevel,
 )
