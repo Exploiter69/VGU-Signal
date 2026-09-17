@@ -90,9 +90,7 @@ def _ocr(body: bytes) -> str:
         return ""
 
 
-def extract_pdf(
-    *, evidence_id: str, source_id: str, url: str, body: bytes
-) -> ExtractedDocument:
+def extract_pdf(*, evidence_id: str, source_id: str, url: str, body: bytes) -> ExtractedDocument:
     warnings: list[str] = []
     try:
         text, metadata, page_count = _extract_pymupdf(body)
