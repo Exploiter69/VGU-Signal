@@ -36,6 +36,32 @@ Required properties:
 - fixture reproduces the parse without network access;
 - failure does not delete last-known-good evidence.
 
+## Gate 1A — Deterministic extraction and normalization
+
+Phase 2 closes only when fixture-backed tests prove all extraction paths and quality safeguards:
+
+- HTML is parsed without executing scripts/styles/templates;
+- relative links resolve against the source URL and duplicate links are removed;
+- HTML metadata and published timestamps are retained when parseable;
+- PDF text is extracted primarily with PyMuPDF;
+- pdfplumber is used as fallback/cross-check and disagreements are surfaced as warnings;
+- sparse or scanned PDFs may use the local tesseract CLI after deterministic page rendering;
+- missing OCR tooling never becomes a fabricated extraction;
+- PDF metadata is retained;
+- dates are parsed only when explicitly present and valid;
+- deadlines require deadline/submission language plus an explicit date;
+- events require event language plus an explicit date;
+- notice classification is deterministic and has an UNKNOWN outcome;
+- academic-calendar rows are normalized without guessing missing dates;
+- identifiers are source-relative and stable for the same source/content/key;
+- parser versions are persisted in every extracted document;
+- extraction quality contains score, level, extraction kind, text length, page count and warnings;
+- unsupported media types fail closed;
+- extracted records retain evidence ID, source ID and canonical URL;
+- repeated fixture extraction is byte-for-byte/model-equal and idempotent.
+
+The gate must not require the live VGU website or paid services.
+
 ## Gate 2 — Claim verification
 
 A fixture set must demonstrate:
