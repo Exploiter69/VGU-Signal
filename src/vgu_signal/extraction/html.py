@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from hashlib import sha256
 from typing import cast
 from urllib.parse import urljoin
@@ -13,6 +14,7 @@ from vgu_signal.extraction.common import (
     extract_dates,
     extract_deadlines,
     extract_events,
+    normalize_text,
     source_relative_id,
 )
 from vgu_signal.extraction.models import ExtractionKind, ExtractionQuality, ExtractedDocument, QualityLevel
@@ -23,9 +25,10 @@ def extract_document(*, evidence_id: str, source_id: str, url: str, body: bytes)
     for element in soup(["script", "style", "noscript", "template"]):
         element.decompose()
 
-    title = soup.title.get_text(" ", strip=True) if soup.title else "Untitled VGU document"
+    raw_title = soup.title.get_text(" ", strip=True) if soup.title else ""
+    title = raw_title or "Untitled VGU document"
     main = soup.find("main") or soup.body or soup
-    text = " ".join(main.stripped_strings)
+    text = normalize_text("\n".join(main.stripped_strings))
 
     links: list[HttpUrl] = []
     seen_links: set[str] = set()
@@ -47,20 +50,26 @@ def extract_document(*, evidence_id: str, source_id: str, url: str, body: bytes)
     published_at = None
     for key, value in metadata:
         if key in {"article:published_time", "date", "publish-date", "datepublished"}:
-            from datetime import datetime
             try:
                 published_at = datetime.fromisoformat(value.replace("Z", "+00:00"))
             except ValueError:
-                pass
-            if published_at:
-                break
+                continue
+            break
 
     raw_hash = sha256(body).hexdigest()
     document_id = sha256(f"{source_id}:{url}:{raw_hash}:{PARSER_VERSION}".encode()).hexdigest()
     dates = extract_dates(text)
     score = 0.98 if len(text) >= 400 else 0.80 if len(text) >= 100 else 0.45 if text else 0.0
+    if score >= 0.9:
+        level = QualityLevel.HIGH
+    elif score >= 0.7:
+        level = QualityLevel.MEDIUM
+    elif score:
+        level = QualityLevel.LOW
+    else:
+        level = QualityLevel.FAILED
     quality = ExtractionQuality(
-        level=QualityLevel.HIGH if score >= 0.9 else QualityLevel.MEDIUM if score >= 0.7 else QualityLevel.LOW if score else QualityLevel.FAILED,
+        level=level,
         score=score,
         text_length=len(text),
         page_count=None,
