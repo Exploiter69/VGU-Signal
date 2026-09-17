@@ -4,59 +4,53 @@
 
 ## Current stage
 
-**Phase 2 — Deterministic Extraction & Normalization: COMPLETE.**
+**Phase 3 — Verification, Deduplication & Change History: COMPLETE.**
 
-Phase 0 and Phase 1 remain closed and unchanged. Phase 2 now converts accepted Phase 1 evidence bytes into deterministic structured extraction results without fetching live URLs, bypassing acquisition policy, or treating extraction output as verified authority.
+Phase 0, Phase 1 and Phase 2 remain closed. Phase 3 now establishes the trust boundary between deterministic extraction candidates and student-facing publication.
 
-## Phase 2 implementation
+## Phase 3 implementation
 
-The extraction boundary is evidence-first and fail-closed:
+The trust layer is evidence-first and fail-closed:
 
-- HTML is parsed with BeautifulSoup without executing page scripts;
-- `main`/`body` content is selected deterministically and normalized;
-- relative links are resolved against the evidence URL and deduplicated in first-seen order;
-- HTML metadata and explicit machine-readable publication timestamps are retained;
-- PDFs are extracted page-by-page with PyMuPDF;
-- pdfplumber provides fallback/cross-check behavior and disagreements are surfaced as warnings;
-- sparse PDF text can fall back to locally invoked tesseract after deterministic PyMuPDF page rendering;
-- OCR failure or unavailable OCR preserves the sparse extraction and records a quality warning;
-- PDF metadata and page count are retained;
-- supported explicit date forms are parsed and invalid dates are rejected;
-- deadline candidates require explicit deadline/submission language plus an explicit date;
-- event candidates require event language plus an explicit date;
-- notice classification is deterministic across ACADEMIC, EXAMINATION, FEES, REGISTRATION, EVENT, HOLIDAY, GENERAL and UNKNOWN;
-- academic-calendar rows retain source text, explicit date ranges, stable source-relative IDs, deterministic ordering and confidence;
-- source-relative identifiers are scoped by source ID, canonical URL and stable key;
-- parser versions are recorded and included in document identity;
-- extraction quality records score, level, text length, page count, extraction kind and warnings;
-- unsupported media types fail closed;
-- every extracted document retains evidence ID, source ID and canonical source URL.
+- claims retain document ID, Phase 1 evidence ID, source ID and deterministic fingerprint;
+- claim creation always starts `UNVERIFIED`;
+- verification requires a matching available evidence ID;
+- legal verification state transitions are explicitly constrained;
+- same-content duplicates are detected by normalized SHA-256 fingerprint;
+- URL replacement requires the same source-relative logical identity and a changed canonical URL;
+- cross-source overlap is represented as `SIMILAR`, never automatically merged or verified;
+- same-source high-overlap differences are surfaced as `CONFLICTS` for review;
+- supersession and correction relationships preserve historical claims;
+- effective intervals provide deterministic expiration;
+- publication requires `VERIFIED` state and an available evidence record;
+- human-readable provenance retains claim → document → evidence → source URL;
+- migration `0003_trust_layer.sql` provides durable documents, claims, evidence links, relationships, verification decisions and correction history.
 
-## Phase 2 fixture coverage
+## Phase 3 regression coverage
 
 The deterministic suite covers:
 
-- supported date forms and invalid dates;
-- positive and negative deadline extraction;
-- positive and negative event extraction;
-- every notice classification category plus UNKNOWN;
-- source-relative identifier stability and source scoping;
-- PyMuPDF PDF extraction, metadata and quality;
-- pdfplumber cross-check disagreement;
-- pdfplumber fallback after primary extraction failure;
-- sparse-PDF OCR fallback and parser-kind recording;
-- OCR failure without fabricated text;
-- HTML metadata, publication time, relative links, duplicate-link removal and executable-node removal;
-- HTML/PDF/TEXT dispatcher routing;
-- unsupported-media fail-closed behavior;
-- calendar date ranges, single dates, duplicates, missing-date rows and deterministic ordering;
-- repeated extraction idempotency and provenance retention.
+- evidence-to-claim provenance and non-implicit verification;
+- missing-evidence rejection;
+- publication guard rejection/acceptance;
+- same-content deduplication;
+- cross-source similarity and threshold validation;
+- same-source conflict detection;
+- URL replacement positive and negative cases;
+- supersession, correction and conflict relationships;
+- deterministic expiration;
+- legal and illegal state transitions;
+- human-readable provenance;
+- stable claim fingerprinting;
+- malformed evidence-hash rejection.
 
-All tests are fixture/generated-input based and do not require the live VGU website, paid services or a preinstalled OCR binary.
+Tests are fixture/generated-input based and do not require the live VGU website, paid services, OCR binaries or LLMs.
 
-## Phase 2 exit gate
+## Phase 3 exit gate
 
-**COMPLETE.** The exit gate is satisfied by the deterministic extraction implementation and its fixture-backed regression coverage. The final repository quality gate must remain green on the synchronized revision:
+**COMPLETE.** The trust-layer tests demonstrate that no deadline/notice/event candidate can pass the publication guard without both an explicit `VERIFIED` state and a traceable evidence record. Changed, conflicting, superseded and expired states remain explicit rather than overwriting history.
+
+The synchronized quality gate for the revision is:
 
 ```text
 ruff format --check .
@@ -66,22 +60,18 @@ pytest -q
 worker: npm install && npm run typecheck
 ```
 
-The core invariant remains:
-
-> Extraction may produce structured candidates, but it may never manufacture authority. Every extracted record remains tied to the exact Phase 1 evidence that produced it.
-
 ## Trust and safety invariants retained
 
 - Official public VGU sources remain authoritative.
 - Evidence identity is based on exact raw bytes, not an AI interpretation.
+- Extraction candidates never become verified merely because they were parsed.
+- Conflicts do not select an automatic winner.
+- Historical evidence and claim states are retained rather than overwritten.
 - Discovery does not equal publication or verification.
 - Robots restrictions are honored rather than bypassed.
 - Authenticated ERP and private WhatsApp data remain out of scope.
-- No paid-service dependency is introduced by Phase 2.
-- Live website availability is not required for CI.
-- OCR is local-only and optional; it cannot invent replacement text on failure.
-- Unsupported media types cannot silently enter the structured-information pipeline.
+- No paid-service dependency is introduced by Phase 3.
 
-## Phase 3 readiness
+## Next gate
 
-**Phase 3 is now the next gate.** Its prerequisites are satisfied: stable Phase 1 evidence IDs, deterministic Phase 2 document records, provenance retention, parser versioning, quality signals and fixture-backed extraction behavior. Phase 3 may now consume these records for evidence-to-claim verification, deduplication, conflict handling, supersession and correction history.
+**Phase 4 — Student Information Model.** Phase 4 can now consume verified claims without reimplementing evidence, verification, deduplication or history logic.
