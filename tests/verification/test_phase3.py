@@ -21,6 +21,7 @@ from vgu_signal.verification import (
     correction_relationship,
     cross_source_similarity,
     deduplicate,
+    detect_conflicts,
     detect_url_replacements,
     expiration_state,
     normalize_statement,
@@ -29,6 +30,7 @@ from vgu_signal.verification import (
     resolve_state,
     same_content_relationships,
     supersession_relationship,
+    transition_state,
     verify_claim,
 )
 
@@ -80,10 +82,8 @@ def make_claim(
     state: VerificationState = VerificationState.UNVERIFIED,
     effective_until: datetime | None = None,
 ) -> EvidenceClaim:
-    from vgu_signal.verification.engine import claim_id as make_id
-
     return EvidenceClaim(
-        id=claim_id or make_id("doc", statement),
+        id=claim_id,
         document_id="doc-1",
         evidence_id=evidence_id,
         source_id=source_id,
@@ -104,13 +104,14 @@ def test_evidence_to_claim_retains_provenance_and_never_verifies_by_extraction()
         source_text="Fee payment deadline is 25 September 2026.",
         confidence=0.88,
     )
-    doc = make_document(evidence_id="ev-42")
-    doc = doc.model_copy(update={"deadlines": (deadline,)})
+    doc = make_document(evidence_id="ev-42").model_copy(update={"deadlines": (deadline,)})
     claims = claims_from_document(doc, "a" * 64, NOW)
     assert len(claims) == 1
     assert claims[0].evidence_id == "ev-42"
     assert claims[0].source_id == "vgu-notices"
     assert claims[0].state == VerificationState.UNVERIFIED
+    with pytest.raises(ValueError):
+        claims_from_document(doc, "not-a-hash", NOW)
 
 
 def test_verification_requires_matching_evidence():
@@ -152,6 +153,17 @@ def test_cross_source_similarity_is_bounded_and_skips_same_source():
         cross_source_similarity([a, b], NOW, threshold=0)
 
 
+def test_conflict_detection_requires_same_source_and_different_content():
+    a = make_claim("Examination form submission deadline is 25 September 2026.", claim_id="a", source_id="vgu")
+    b = make_claim("Examination form submission deadline is 30 September 2026.", claim_id="b", source_id="vgu", evidence_id="ev-2")
+    other_source = b.model_copy(update={"id": "c", "source_id": "other"})
+    unrelated = make_claim("Hostel orientation is scheduled in October.", claim_id="d", source_id="vgu", evidence_id="ev-3")
+    conflicts = detect_conflicts([a, b, other_source, unrelated], NOW)
+    assert len(conflicts) == 1
+    assert conflicts[0].kind == RelationshipKind.CONFLICTS
+    assert conflicts[0].similarity is not None
+
+
 def test_url_replacement_detects_same_logical_document_moved_between_urls():
     old = make_document(url="https://vgu.ac.in/uploads/notice-old.pdf", relative_id="logical-notice")
     new = make_document(url="https://vgu.ac.in/uploads/notice-new.pdf", relative_id="logical-notice")
@@ -175,7 +187,7 @@ def test_supersession_correction_and_conflict_relationships_are_explicit():
     assert new.model_copy(update={"supersedes_claim_id": old.id}).supersedes_claim_id == old.id
 
 
-def test_expiration_is_time_based_and_does_not_upgrade_unverified_claims():
+def test_expiration_is_time_based_and_never_upgrades_unverified_claims():
     expiry = datetime(2026, 9, 17, 11, 59)
     verified = make_claim("Deadline is today.", state=VerificationState.VERIFIED, effective_until=expiry)
     assert expiration_state(verified, NOW) == VerificationState.EXPIRED
@@ -185,12 +197,23 @@ def test_expiration_is_time_based_and_does_not_upgrade_unverified_claims():
     assert expiration_state(open_claim, NOW) == VerificationState.UNVERIFIED
 
 
+def test_state_machine_allows_only_declared_transitions():
+    assert transition_state(VerificationState.UNVERIFIED, VerificationState.VERIFIED) == VerificationState.VERIFIED
+    assert transition_state(VerificationState.VERIFIED, VerificationState.SUPERSEDED) == VerificationState.SUPERSEDED
+    assert transition_state(VerificationState.VERIFIED, VerificationState.CONFLICTING) == VerificationState.CONFLICTING
+    with pytest.raises(ValueError):
+        transition_state(VerificationState.SUPERSEDED, VerificationState.VERIFIED)
+    with pytest.raises(ValueError):
+        transition_state(VerificationState.REMOVED, VerificationState.VERIFIED)
+
+
 def test_state_resolution_prevents_ambiguous_priority():
     claim = make_claim("Notice")
     assert resolve_state(claim, verified=True) == VerificationState.VERIFIED
-    assert resolve_state(claim, verified=True, expired=True) == VerificationState.EXPIRED
-    assert resolve_state(claim, verified=True, superseded=True) == VerificationState.SUPERSEDED
-    assert resolve_state(claim, verified=True, conflicting=True) == VerificationState.CONFLICTING
+    verified = claim.model_copy(update={"state": VerificationState.VERIFIED})
+    assert resolve_state(verified, verified=True, expired=True) == VerificationState.EXPIRED
+    assert resolve_state(verified, verified=True, superseded=True) == VerificationState.SUPERSEDED
+    assert resolve_state(verified, verified=True, conflicting=True) == VerificationState.CONFLICTING
     assert resolve_state(claim, verified=False) == VerificationState.UNVERIFIED
 
 
