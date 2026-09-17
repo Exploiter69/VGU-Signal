@@ -1,6 +1,6 @@
 # Data Model
 
-This is the conceptual model. It is intentionally implementation-neutral; the physical schema comes after stack selection.
+VGU Signal keeps the authoritative evidence chain separate from delivery concerns. The physical schema now includes the Phase 3 trust layer while later student-facing fields remain intentionally deferred.
 
 ## Source
 
@@ -39,43 +39,77 @@ Evidence
 - http_etag
 ```
 
-Evidence is the audit layer.
+Evidence is immutable audit history. The raw-content hash is the identity fallback even when HTTP validators are unavailable.
 
 ## Document
 
-Represents a logical notice, PDF, page or other university publication that may have multiple evidence versions/locations.
+Represents an extracted logical publication backed by one evidence version.
 
 ```text
 Document
 - id
-- title
+- evidence_id
+- source_id
 - canonical_url
-- document_type
+- title
 - published_at
-- current_state
+- body_text
+- parser_version
+- state
 ```
 
 ## Claim
 
-Represents a normalized fact derived from evidence.
+Represents a deterministic fact candidate derived from a document and its evidence.
 
 ```text
 Claim
 - id
 - document_id
-- claim_type
-- normalized_value
-- status
-- effective_from
-- effective_until
+- evidence_id
+- source_id
+- statement
+- normalized_statement
+- fingerprint
+- state
 - first_seen_at
 - last_seen_at
+- effective_from
+- effective_until
 - supersedes_claim_id
+- correction_of_claim_id
 ```
+
+A claim begins `UNVERIFIED`. It cannot become publishable merely because extraction succeeded.
+
+## Claim evidence
+
+The `claim_evidence` relation explicitly links claims to the evidence records supporting them. This allows provenance to survive deduplication and later multi-evidence relationships.
+
+## Claim relationships
+
+`claim_relationships` records non-destructive relationships:
+
+- `SAME_CONTENT`;
+- `URL_REPLACEMENT`;
+- `SIMILAR`;
+- `SUPERSEDES`;
+- `CORRECTS`;
+- `CONFLICTS`.
+
+Relationships never delete either endpoint. A conflict does not select a winner automatically.
+
+## Verification decisions
+
+`verification_decisions` records the state, reason and decision time so verification is auditable instead of being an unexplained boolean.
+
+## Correction history
+
+`correction_history` preserves explicit correction events and both claim identities. Previous information remains queryable.
 
 ## Deadline / Event
 
-These are domain views over claims rather than independent truth stores.
+These remain domain views over verified claims rather than independent truth stores.
 
 ```text
 Deadline
@@ -92,11 +126,11 @@ Event
 - audience
 ```
 
-This prevents multiple subsystems from inventing separate versions of the same official fact.
+Later Phase 4 work will finalize student dimensions and delivery-specific fields.
 
-## User
+## User / preferences / notification
 
-Only minimal data needed for personalization.
+These remain deferred until the Telegram/student information phases:
 
 ```text
 User
@@ -104,11 +138,7 @@ User
 - telegram_user_id
 - created_at
 - status
-```
 
-## User preferences
-
-```text
 UserPreference
 - user_id
 - program
@@ -118,15 +148,7 @@ UserPreference
 - categories
 - quiet_hours
 - digest_enabled
-```
 
-Exact fields must be finalized after Telegram UX and privacy review.
-
-## Notification
-
-Represents an attempted/delivered user-facing event.
-
-```text
 Notification
 - id
 - user_id
@@ -136,8 +158,6 @@ Notification
 - delivered_at
 - delivery_status
 ```
-
-A stable identity/idempotency key is required so retries cannot produce duplicate alerts.
 
 ## Relationships
 
@@ -152,6 +172,11 @@ Claim
   ├── Deadline
   └── Event
 
+Claim ── claim_evidence ──> Evidence
+Claim ── claim_relationships ──> Claim
+Claim ── verification_decisions
+Claim ── correction_history ──> Claim
+
 User
   ↓ has
 Preferences
@@ -163,4 +188,4 @@ Notifications
 
 ## Design rule
 
-The database is not the source of truth by itself. For authoritative university facts, the source evidence and provenance chain remain the foundation.
+The database is not the source of truth by itself. For authoritative university facts, the exact source evidence, evidence hash and provenance chain remain the foundation. Verification state controls publication; history is never overwritten.
