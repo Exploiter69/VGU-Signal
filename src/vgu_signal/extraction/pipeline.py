@@ -15,7 +15,12 @@ from vgu_signal.extraction.common import (
     source_relative_id,
 )
 from vgu_signal.extraction.html import extract_document as extract_html
-from vgu_signal.extraction.models import ExtractionKind, ExtractionQuality, ExtractedDocument, QualityLevel
+from vgu_signal.extraction.models import (
+    ExtractionKind,
+    ExtractionQuality,
+    ExtractedDocument,
+    QualityLevel,
+)
 from vgu_signal.extraction.pdf import extract_pdf
 
 _HTML_TYPES = {"text/html", "application/xhtml+xml"}
@@ -27,7 +32,9 @@ def normalize_content_type(content_type: str) -> str:
     return content_type.split(";", 1)[0].strip().lower()
 
 
-def extract_evidence(*, evidence_id: str, source_id: str, url: str, content_type: str, body: bytes) -> ExtractedDocument:
+def extract_evidence(
+    *, evidence_id: str, source_id: str, url: str, content_type: str, body: bytes
+) -> ExtractedDocument:
     media_type = normalize_content_type(content_type)
     if media_type in _HTML_TYPES:
         return extract_html(evidence_id=evidence_id, source_id=source_id, url=url, body=body)
