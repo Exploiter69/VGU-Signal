@@ -101,19 +101,21 @@ Work:
 
 **Goal:** establish the core trust layer.
 
-- [ ] Evidence → claim model.
-- [ ] Verification state machine.
-- [ ] Same-content deduplication.
-- [ ] URL replacement detection.
-- [ ] Cross-source similarity detection.
-- [ ] Supersession relationships.
-- [ ] Expiration handling.
-- [ ] Conflict detection.
-- [ ] Correction history.
-- [ ] Human-readable provenance.
-- [ ] Regression tests for false positives and false negatives.
+- [x] Evidence → claim model.
+- [x] Verification state machine.
+- [x] Same-content deduplication.
+- [x] URL replacement detection.
+- [x] Cross-source similarity detection.
+- [x] Supersession relationships.
+- [x] Expiration handling.
+- [x] Conflict detection.
+- [x] Correction history.
+- [x] Human-readable provenance.
+- [x] Regression tests for false positives and false negatives.
 
-**Exit gate:** no published deadline/notice can exist without a traceable evidence chain.
+**Phase 3 implementation notes:** Phase 3 consumes Phase 2 records without performing network access. Claims retain document/evidence/source identity and deterministic fingerprints. Verification is explicit and state transitions are constrained. Same-content deduplication is fingerprint-based; URL replacement requires the same source-relative logical identity; cross-source overlap is recorded as similarity rather than automatically merged. Same-source high-overlap differences are surfaced as conflicts for review rather than assigning a winner. Supersession and correction remain explicit historical relationships. Effective intervals support deterministic expiration. Publication is guarded by verified state plus evidence presence. The durable trust-layer migration preserves documents, claims, evidence links, relationships, verification decisions and correction history.
+
+**Exit gate:** COMPLETE. Fixture-backed tests prove that only evidence-backed verified claims are publishable, historical relationships remain explicit, conflicting/changed material is not silently selected as authoritative, and provenance remains traceable to the exact Phase 1 evidence.
 
 ## Phase 4 — Student information model
 
