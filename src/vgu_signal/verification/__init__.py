@@ -7,6 +7,7 @@ from .engine import (
     correction_relationship,
     cross_source_similarity,
     deduplicate,
+    detect_conflicts,
     detect_url_replacements,
     evidence_link,
     expiration_state,
@@ -18,6 +19,7 @@ from .engine import (
     same_content_relationships,
     supersession_relationship,
     token_similarity,
+    transition_state,
     verify_claim,
 )
 from .models import (
@@ -46,6 +48,7 @@ __all__ = [
     "correction_relationship",
     "cross_source_similarity",
     "deduplicate",
+    "detect_conflicts",
     "detect_url_replacements",
     "evidence_link",
     "expiration_state",
@@ -57,5 +60,6 @@ __all__ = [
     "same_content_relationships",
     "supersession_relationship",
     "token_similarity",
+    "transition_state",
     "verify_claim",
 ]
