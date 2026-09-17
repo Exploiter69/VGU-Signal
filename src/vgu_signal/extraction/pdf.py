@@ -5,7 +5,7 @@ import subprocess
 from hashlib import sha256
 from typing import cast
 
-import fitz
+import fitz  # type: ignore[import-untyped]
 import pdfplumber
 from pydantic import HttpUrl
 
