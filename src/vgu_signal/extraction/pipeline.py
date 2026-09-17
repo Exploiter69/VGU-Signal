@@ -16,9 +16,9 @@ from vgu_signal.extraction.common import (
 )
 from vgu_signal.extraction.html import extract_document as extract_html
 from vgu_signal.extraction.models import (
+    ExtractedDocument,
     ExtractionKind,
     ExtractionQuality,
-    ExtractedDocument,
     QualityLevel,
 )
 from vgu_signal.extraction.pdf import extract_pdf
