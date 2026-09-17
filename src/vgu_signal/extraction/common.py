@@ -53,12 +53,21 @@ _EVENT_TERMS = (
     "ceremony",
 )
 _CATEGORY_TERMS: tuple[tuple[NoticeCategory, tuple[str, ...]], ...] = (
-    (NoticeCategory.EXAMINATION, ("exam", "examination", "semester end", "date sheet", "admit card")),
+    (
+        NoticeCategory.EXAMINATION,
+        ("exam", "examination", "semester end", "date sheet", "admit card"),
+    ),
     (NoticeCategory.FEES, ("fee", "fees", "payment", "tuition", "scholarship fee")),
-    (NoticeCategory.REGISTRATION, ("registration", "register", "enrolment", "enrollment", "form submission")),
+    (
+        NoticeCategory.REGISTRATION,
+        ("registration", "register", "enrolment", "enrollment", "form submission"),
+    ),
     (NoticeCategory.HOLIDAY, ("holiday", "holidays", "vacation", "closed")),
     (NoticeCategory.EVENT, _EVENT_TERMS),
-    (NoticeCategory.ACADEMIC, ("academic calendar", "semester", "session", "academic year", "classes")),
+    (
+        NoticeCategory.ACADEMIC,
+        ("academic calendar", "semester", "session", "academic year", "classes"),
+    ),
     (NoticeCategory.GENERAL, ("notice", "circular", "notification", "information")),
 )
 
@@ -87,15 +96,26 @@ def _parse_date(day: int, month: str, year: int) -> datetime | None:
 def extract_dates(text: str) -> tuple[ExtractedDate, ...]:
     found: list[ExtractedDate] = []
     for match in _DATE_RE.finditer(text):
-        value = _parse_date(int(match.group("day")), match.group("month"), int(match.group("year")))
+        value = _parse_date(
+            int(match.group("day")), match.group("month"), int(match.group("year"))
+        )
         if value is not None:
-            found.append(ExtractedDate(value=value, label="date", source_text=match.group(0), confidence=0.95))
+            found.append(
+                ExtractedDate(
+                    value=value,
+                    label="date",
+                    source_text=match.group(0),
+                    confidence=0.95,
+                )
+            )
     for match in _ISO_RE.finditer(text):
         try:
             value = datetime.fromisoformat(match.group(0))
         except ValueError:
             continue
-        found.append(ExtractedDate(value=value, label="date", source_text=match.group(0), confidence=0.99))
+        found.append(
+            ExtractedDate(value=value, label="date", source_text=match.group(0), confidence=0.99)
+        )
     unique = {(item.value, item.source_text): item for item in found}
     return tuple(sorted(unique.values(), key=lambda item: (item.value, item.source_text)))
 
@@ -146,7 +166,10 @@ def extract_events(text: str) -> tuple[ExtractedEvent, ...]:
 
 def classify_notice(text: str, title: str = "") -> NoticeCategory:
     haystack = f"{title} {text}".lower()
-    scores = {category: sum(haystack.count(term) for term in terms) for category, terms in _CATEGORY_TERMS}
+    scores = {
+        category: sum(haystack.count(term) for term in terms)
+        for category, terms in _CATEGORY_TERMS
+    }
     category, score = max(scores.items(), key=lambda pair: pair[1])
     return category if score else NoticeCategory.UNKNOWN
 
