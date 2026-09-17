@@ -10,12 +10,7 @@ from vgu_signal.extraction.common import (
     extract_events,
     source_relative_id,
 )
-from vgu_signal.extraction.models import (
-    ExtractedDocument,
-    ExtractionKind,
-    NoticeCategory,
-    QualityLevel,
-)
+from vgu_signal.extraction.models import ExtractionKind, NoticeCategory, QualityLevel
 from vgu_signal.extraction.pdf import extract_pdf
 from vgu_signal.extraction.pipeline import extract_evidence
 
