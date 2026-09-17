@@ -84,10 +84,10 @@ def claims_from_document(
     if not re.fullmatch(r"[0-9a-f]{64}", evidence_hash):
         raise ValueError("evidence_hash must be a lowercase SHA-256 hex digest")
     statements: list[tuple[str, datetime | None, datetime | None]] = []
-    for item in document.deadlines:
-        statements.append((item.source_text, item.due_at, None))
-    for item in document.events:
-        statements.append((item.source_text, item.starts_at, item.ends_at))
+    for deadline in document.deadlines:
+        statements.append((deadline.source_text, deadline.due_at, None))
+    for event in document.events:
+        statements.append((event.source_text, event.starts_at, event.ends_at))
     if not statements and document.body_text.strip():
         statements.append((document.body_text[:1000], None, None))
 
