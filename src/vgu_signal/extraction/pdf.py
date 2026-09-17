@@ -18,7 +18,12 @@ from vgu_signal.extraction.common import (
     normalize_text,
     source_relative_id,
 )
-from vgu_signal.extraction.models import ExtractionKind, ExtractionQuality, ExtractedDocument, QualityLevel
+from vgu_signal.extraction.models import (
+    ExtractionKind,
+    ExtractionQuality,
+    ExtractedDocument,
+    QualityLevel,
+)
 
 PDF_PARSER_VERSION = "pdf-pymupdf-v1+pdfplumber-crosscheck-v1"
 OCR_PARSER_VERSION = "pdf-ocr-tesseract-v1"
@@ -85,7 +90,9 @@ def _ocr(body: bytes) -> str:
         return ""
 
 
-def extract_pdf(*, evidence_id: str, source_id: str, url: str, body: bytes) -> ExtractedDocument:
+def extract_pdf(
+    *, evidence_id: str, source_id: str, url: str, body: bytes
+) -> ExtractedDocument:
     warnings: list[str] = []
     try:
         text, metadata, page_count = _extract_pymupdf(body)
