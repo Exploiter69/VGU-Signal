@@ -10,7 +10,12 @@ from vgu_signal.extraction.common import (
     extract_events,
     source_relative_id,
 )
-from vgu_signal.extraction.models import ExtractionKind, NoticeCategory, QualityLevel
+from vgu_signal.extraction.models import (
+    ExtractedDocument,
+    ExtractionKind,
+    NoticeCategory,
+    QualityLevel,
+)
 from vgu_signal.extraction.pdf import extract_pdf
 from vgu_signal.extraction.pipeline import extract_evidence
 
@@ -74,7 +79,8 @@ def test_pdf_primary_extraction_metadata_and_quality() -> None:
     assert result.extraction_kind == ExtractionKind.PDF
     assert result.title == "Exam Rules"
     assert result.deadlines[0].due_at.isoformat() == "2026-09-20T00:00:00"
-    assert result.quality.level in {QualityLevel.MEDIUM, QualityLevel.HIGH}
+    assert result.quality.level == QualityLevel.LOW
+    assert result.quality.warnings
     assert result.source_relative_id.startswith("exam-rules:")
 
 
