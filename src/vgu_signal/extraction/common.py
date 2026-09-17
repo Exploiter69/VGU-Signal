@@ -96,9 +96,7 @@ def _parse_date(day: int, month: str, year: int) -> datetime | None:
 def extract_dates(text: str) -> tuple[ExtractedDate, ...]:
     found: list[ExtractedDate] = []
     for match in _DATE_RE.finditer(text):
-        value = _parse_date(
-            int(match.group("day")), match.group("month"), int(match.group("year"))
-        )
+        value = _parse_date(int(match.group("day")), match.group("month"), int(match.group("year")))
         if value is not None:
             found.append(
                 ExtractedDate(
@@ -167,8 +165,7 @@ def extract_events(text: str) -> tuple[ExtractedEvent, ...]:
 def classify_notice(text: str, title: str = "") -> NoticeCategory:
     haystack = f"{title} {text}".lower()
     scores = {
-        category: sum(haystack.count(term) for term in terms)
-        for category, terms in _CATEGORY_TERMS
+        category: sum(haystack.count(term) for term in terms) for category, terms in _CATEGORY_TERMS
     }
     category, score = max(scores.items(), key=lambda pair: pair[1])
     return category if score else NoticeCategory.UNKNOWN
