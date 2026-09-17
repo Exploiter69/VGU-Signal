@@ -1,5 +1,3 @@
-from __future__
-
 from datetime import datetime
 from enum import StrEnum
 
