@@ -4,7 +4,6 @@ import io
 import subprocess
 from hashlib import sha256
 from typing import cast
-from urllib.parse import urljoin
 
 import fitz
 import pdfplumber
@@ -12,7 +11,6 @@ from pydantic import HttpUrl
 
 from vgu_signal.domain import Document
 from vgu_signal.extraction.common import (
-    PARSER_VERSION,
     classify_notice,
     extract_dates,
     extract_deadlines,
@@ -20,12 +18,7 @@ from vgu_signal.extraction.common import (
     normalize_text,
     source_relative_id,
 )
-from vgu_signal.extraction.models import (
-    ExtractionKind,
-    ExtractionQuality,
-    ExtractedDocument,
-    QualityLevel,
-)
+from vgu_signal.extraction.models import ExtractionKind, ExtractionQuality, ExtractedDocument, QualityLevel
 
 PDF_PARSER_VERSION = "pdf-pymupdf-v1+pdfplumber-crosscheck-v1"
 OCR_PARSER_VERSION = "pdf-ocr-tesseract-v1"
@@ -35,7 +28,9 @@ def _metadata_tuple(metadata: dict[str, object]) -> tuple[tuple[str, str], ...]:
     return tuple(sorted((str(k), str(v)) for k, v in metadata.items() if v not in (None, "")))
 
 
-def _quality(text: str, page_count: int, kind: ExtractionKind, warnings: tuple[str, ...] = ()) -> ExtractionQuality:
+def _quality(
+    text: str, page_count: int, kind: ExtractionKind, warnings: tuple[str, ...] = ()
+) -> ExtractionQuality:
     length = len(text.strip())
     if length >= 400:
         score, level = 0.98, QualityLevel.HIGH
@@ -45,14 +40,20 @@ def _quality(text: str, page_count: int, kind: ExtractionKind, warnings: tuple[s
         score, level = 0.45, QualityLevel.LOW
     else:
         score, level = 0.0, QualityLevel.FAILED
-    return ExtractionQuality(level=level, score=score, text_length=length, page_count=page_count, extraction_kind=kind, warnings=warnings)
+    return ExtractionQuality(
+        level=level,
+        score=score,
+        text_length=length,
+        page_count=page_count,
+        extraction_kind=kind,
+        warnings=warnings,
+    )
 
 
 def _extract_pymupdf(body: bytes) -> tuple[str, dict[str, object], int]:
     with fitz.open(stream=body, filetype="pdf") as pdf:
         pages = [page.get_text("text") for page in pdf]
-        metadata = dict(pdf.metadata)
-        return normalize_text("\n".join(pages)), metadata, len(pdf)
+        return normalize_text("\n".join(pages)), dict(pdf.metadata), len(pdf)
 
 
 def _extract_pdfplumber(body: bytes) -> str:
@@ -61,18 +62,27 @@ def _extract_pdfplumber(body: bytes) -> str:
 
 
 def _ocr(body: bytes) -> str:
-    """Use the locally installed tesseract CLI only for genuinely text-poor PDFs."""
+    """Render scanned pages locally and invoke the optional tesseract CLI."""
     try:
-        process = subprocess.run(
-            ["tesseract", "stdin", "stdout", "--dpi", "200"],
-            input=body,
-            capture_output=True,
-            check=False,
-            timeout=60,
-        )
-    except (FileNotFoundError, subprocess.TimeoutExpired):
+        with fitz.open(stream=body, filetype="pdf") as pdf:
+            chunks: list[str] = []
+            for page in pdf:
+                pixmap = page.get_pixmap(dpi=150, alpha=False)
+                try:
+                    process = subprocess.run(
+                        ["tesseract", "stdin", "stdout", "--dpi", "150"],
+                        input=pixmap.tobytes("png"),
+                        capture_output=True,
+                        check=False,
+                        timeout=30,
+                    )
+                except (FileNotFoundError, subprocess.TimeoutExpired):
+                    return ""
+                if process.returncode == 0:
+                    chunks.append(process.stdout.decode("utf-8", errors="replace"))
+            return normalize_text("\n".join(chunks))
+    except Exception:
         return ""
-    return normalize_text(process.stdout.decode("utf-8", errors="replace")) if process.returncode == 0 else ""
 
 
 def extract_pdf(*, evidence_id: str, source_id: str, url: str, body: bytes) -> ExtractedDocument:
@@ -83,23 +93,21 @@ def extract_pdf(*, evidence_id: str, source_id: str, url: str, body: bytes) -> E
         text, metadata, page_count = "", {}, 1
         warnings.append(f"PyMuPDF extraction failed: {type(exc).__name__}")
 
-    plumber_text = ""
-    if text and len(text) < 100:
+    if text:
         try:
             plumber_text = _extract_pdfplumber(body)
             if len(plumber_text) > len(text):
                 text = plumber_text
+                warnings.append("pdfplumber supplied more text than PyMuPDF")
             elif plumber_text and plumber_text != text:
                 warnings.append("pdfplumber cross-check differs from PyMuPDF")
         except Exception as exc:
-            warnings.append(f"pdfplumber fallback failed: {type(exc).__name__}")
-    elif text:
-        try:
-            plumber_text = _extract_pdfplumber(body)
-            if plumber_text and plumber_text != text:
-                warnings.append("pdfplumber cross-check differs from PyMuPDF")
-        except Exception as exc:
             warnings.append(f"pdfplumber cross-check unavailable: {type(exc).__name__}")
+    else:
+        try:
+            text = _extract_pdfplumber(body)
+        except Exception as exc:
+            warnings.append(f"pdfplumber fallback failed: {type(exc).__name__}")
 
     kind = ExtractionKind.PDF
     parser_version = PDF_PARSER_VERSION
@@ -110,13 +118,11 @@ def extract_pdf(*, evidence_id: str, source_id: str, url: str, body: bytes) -> E
             kind = ExtractionKind.OCR
             parser_version = OCR_PARSER_VERSION
         else:
-            warnings.append("PDF contains too little extractable text and OCR was unavailable or unsuccessful")
+            warnings.append("PDF text is too sparse and OCR was unavailable or unsuccessful")
 
     title = str(metadata.get("title") or "").strip() or f"VGU PDF document ({page_count} pages)"
     raw_hash = sha256(body).hexdigest()
     document_id = sha256(f"{source_id}:{url}:{raw_hash}:{parser_version}".encode()).hexdigest()
-    relative_id = source_relative_id(source_id, url, raw_hash)
-    dates = extract_dates(text)
     return ExtractedDocument(
         id=document_id,
         evidence_id=evidence_id,
@@ -128,11 +134,11 @@ def extract_pdf(*, evidence_id: str, source_id: str, url: str, body: bytes) -> E
         parser_version=parser_version,
         extraction_kind=kind,
         metadata=_metadata_tuple(metadata),
-        dates=dates,
+        dates=extract_dates(text),
         deadlines=extract_deadlines(text),
         events=extract_events(text),
         notice_category=classify_notice(text, title),
-        source_relative_id=relative_id,
+        source_relative_id=source_relative_id(source_id, url, raw_hash),
         quality=_quality(text, page_count, kind, tuple(warnings)),
     )
 
@@ -144,7 +150,7 @@ def to_document(extracted: ExtractedDocument) -> Document:
         source_id=extracted.source_id,
         canonical_url=extracted.canonical_url,
         title=extracted.title,
-        published_at=None,
+        published_at=extracted.published_at,
         body_text=extracted.body_text,
         links=extracted.links,
         parser_version=extracted.parser_version,
