@@ -270,9 +270,7 @@ def test_state_resolution_prevents_ambiguous_priority():
 
 
 def test_human_readable_provenance_contains_chain():
-    claim = make_claim(
-        "Exam form deadline is 25 September 2026.", state=VerificationState.VERIFIED
-    )
+    claim = make_claim("Exam form deadline is 25 September 2026.", state=VerificationState.VERIFIED)
     record = provenance(claim, evidence_hash="b" * 64, source_url="https://vgu.ac.in/exams")
     summary = record.human_summary()
     assert claim.id in summary
