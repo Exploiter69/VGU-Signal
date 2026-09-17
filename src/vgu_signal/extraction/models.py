@@ -10,6 +10,7 @@ class ExtractionKind(StrEnum):
     HTML = "HTML"
     PDF = "PDF"
     OCR = "OCR"
+    TEXT = "TEXT"
 
 
 class QualityLevel(StrEnum):
