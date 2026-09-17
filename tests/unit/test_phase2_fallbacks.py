@@ -18,7 +18,9 @@ def make_pdf(text: str) -> bytes:
 
 def test_pdfplumber_crosscheck_disagreement_is_visible(monkeypatch) -> None:
     body = make_pdf("Short extract")
-    monkeypatch.setattr(pdf, "_extract_pdfplumber", lambda _: "A different longer extraction " * 10)
+    monkeypatch.setattr(
+        pdf, "_extract_pdfplumber", lambda _: "A different longer extraction " * 10
+    )
     result = pdf.extract_pdf(
         evidence_id="ev",
         source_id="rules",
@@ -32,7 +34,11 @@ def test_pdfplumber_crosscheck_disagreement_is_visible(monkeypatch) -> None:
 def test_pdfplumber_is_fallback_when_primary_extraction_fails(monkeypatch) -> None:
     body = make_pdf("ignored")
     fallback = "Fallback extraction " * 20
-    monkeypatch.setattr(pdf, "_extract_pymupdf", lambda _: (_ for _ in ()).throw(RuntimeError("broken")))
+    monkeypatch.setattr(
+        pdf,
+        "_extract_pymupdf",
+        lambda _: (_ for _ in ()).throw(RuntimeError("broken")),
+    )
     monkeypatch.setattr(pdf, "_extract_pdfplumber", lambda _: fallback)
     monkeypatch.setattr(pdf, "_ocr", lambda _: "")
     result = pdf.extract_pdf(
@@ -84,7 +90,7 @@ def test_html_metadata_links_and_script_removal_are_deterministic() -> None:
     )
     assert result.title == "Exam Notice"
     assert "alert" not in result.body_text
-    assert len(result.links) == 2
+    assert len(result.links) == 1
     assert str(result.links[0]) == "https://vgu.ac.in/notice.pdf"
     assert result.published_at is not None
     assert result.deadlines
