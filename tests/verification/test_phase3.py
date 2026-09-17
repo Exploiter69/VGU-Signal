@@ -142,9 +142,23 @@ def test_same_content_deduplication_and_relationships():
 
 
 def test_cross_source_similarity_is_bounded_and_skips_same_source():
-    a = make_claim("The last date for examination form submission is 25 September 2026.", claim_id="a", source_id="a")
-    b = make_claim("The last date for examination form submission is 25 September 2026.", claim_id="b", source_id="b", evidence_id="ev-2")
-    c = make_claim("Library orientation is scheduled for students.", claim_id="c", source_id="c", evidence_id="ev-3")
+    a = make_claim(
+        "The last date for examination form submission is 25 September 2026.",
+        claim_id="a",
+        source_id="a",
+    )
+    b = make_claim(
+        "The last date for examination form submission is 25 September 2026.",
+        claim_id="b",
+        source_id="b",
+        evidence_id="ev-2",
+    )
+    c = make_claim(
+        "Library orientation is scheduled for students.",
+        claim_id="c",
+        source_id="c",
+        evidence_id="ev-3",
+    )
     relationships = cross_source_similarity([a, b, c], NOW, threshold=0.8)
     assert len(relationships) == 1
     assert relationships[0].kind == RelationshipKind.SIMILAR
@@ -154,10 +168,22 @@ def test_cross_source_similarity_is_bounded_and_skips_same_source():
 
 
 def test_conflict_detection_requires_same_source_and_different_content():
-    a = make_claim("Examination form submission deadline is 25 September 2026.", claim_id="a", source_id="vgu")
-    b = make_claim("Examination form submission deadline is 30 September 2026.", claim_id="b", source_id="vgu", evidence_id="ev-2")
+    a = make_claim(
+        "Examination form submission deadline is 25 September 2026.", claim_id="a", source_id="vgu"
+    )
+    b = make_claim(
+        "Examination form submission deadline is 30 September 2026.",
+        claim_id="b",
+        source_id="vgu",
+        evidence_id="ev-2",
+    )
     other_source = b.model_copy(update={"id": "c", "source_id": "other"})
-    unrelated = make_claim("Hostel orientation is scheduled in October.", claim_id="d", source_id="vgu", evidence_id="ev-3")
+    unrelated = make_claim(
+        "Hostel orientation is scheduled in October.",
+        claim_id="d",
+        source_id="vgu",
+        evidence_id="ev-3",
+    )
     conflicts = detect_conflicts([a, b, other_source, unrelated], NOW)
     assert len(conflicts) == 1
     assert conflicts[0].kind == RelationshipKind.CONFLICTS
@@ -165,22 +191,37 @@ def test_conflict_detection_requires_same_source_and_different_content():
 
 
 def test_url_replacement_detects_same_logical_document_moved_between_urls():
-    old = make_document(url="https://vgu.ac.in/uploads/notice-old.pdf", relative_id="logical-notice")
-    new = make_document(url="https://vgu.ac.in/uploads/notice-new.pdf", relative_id="logical-notice")
+    old = make_document(
+        url="https://vgu.ac.in/uploads/notice-old.pdf", relative_id="logical-notice"
+    )
+    new = make_document(
+        url="https://vgu.ac.in/uploads/notice-new.pdf", relative_id="logical-notice"
+    )
     assert detect_url_replacements(old, new, NOW)
-    same = make_document(url="https://vgu.ac.in/uploads/notice-old.pdf", relative_id="logical-notice")
+    same = make_document(
+        url="https://vgu.ac.in/uploads/notice-old.pdf", relative_id="logical-notice"
+    )
     assert not detect_url_replacements(old, same, NOW)
 
 
 def test_url_replacement_does_not_cross_source_boundary():
     old = make_document(source_id="source-a", relative_id="logical")
-    new = make_document(source_id="source-b", relative_id="logical", url="https://vgu.ac.in/new.pdf")
+    new = make_document(
+        source_id="source-b", relative_id="logical", url="https://vgu.ac.in/new.pdf"
+    )
     assert not detect_url_replacements(old, new, NOW)
 
 
 def test_supersession_correction_and_conflict_relationships_are_explicit():
-    old = make_claim("Deadline is 25 September 2026.", claim_id="old", state=VerificationState.VERIFIED)
-    new = make_claim("Deadline is 30 September 2026.", claim_id="new", evidence_id="ev-2", state=VerificationState.VERIFIED)
+    old = make_claim(
+        "Deadline is 25 September 2026.", claim_id="old", state=VerificationState.VERIFIED
+    )
+    new = make_claim(
+        "Deadline is 30 September 2026.",
+        claim_id="new",
+        evidence_id="ev-2",
+        state=VerificationState.VERIFIED,
+    )
     assert supersession_relationship(old, new, NOW).kind == RelationshipKind.SUPERSEDES
     assert correction_relationship(old, new, NOW).kind == RelationshipKind.CORRECTS
     assert conflict_relationship(old, new, NOW).kind == RelationshipKind.CONFLICTS
@@ -189,7 +230,9 @@ def test_supersession_correction_and_conflict_relationships_are_explicit():
 
 def test_expiration_is_time_based_and_never_upgrades_unverified_claims():
     expiry = datetime(2026, 9, 17, 11, 59)
-    verified = make_claim("Deadline is today.", state=VerificationState.VERIFIED, effective_until=expiry)
+    verified = make_claim(
+        "Deadline is today.", state=VerificationState.VERIFIED, effective_until=expiry
+    )
     assert expiration_state(verified, NOW) == VerificationState.EXPIRED
     unverified = make_claim("Deadline is today.", effective_until=expiry)
     assert expiration_state(unverified, NOW) == VerificationState.EXPIRED
@@ -198,9 +241,18 @@ def test_expiration_is_time_based_and_never_upgrades_unverified_claims():
 
 
 def test_state_machine_allows_only_declared_transitions():
-    assert transition_state(VerificationState.UNVERIFIED, VerificationState.VERIFIED) == VerificationState.VERIFIED
-    assert transition_state(VerificationState.VERIFIED, VerificationState.SUPERSEDED) == VerificationState.SUPERSEDED
-    assert transition_state(VerificationState.VERIFIED, VerificationState.CONFLICTING) == VerificationState.CONFLICTING
+    assert (
+        transition_state(VerificationState.UNVERIFIED, VerificationState.VERIFIED)
+        == VerificationState.VERIFIED
+    )
+    assert (
+        transition_state(VerificationState.VERIFIED, VerificationState.SUPERSEDED)
+        == VerificationState.SUPERSEDED
+    )
+    assert (
+        transition_state(VerificationState.VERIFIED, VerificationState.CONFLICTING)
+        == VerificationState.CONFLICTING
+    )
     with pytest.raises(ValueError):
         transition_state(VerificationState.SUPERSEDED, VerificationState.VERIFIED)
     with pytest.raises(ValueError):
@@ -218,7 +270,9 @@ def test_state_resolution_prevents_ambiguous_priority():
 
 
 def test_human_readable_provenance_contains_chain():
-    claim = make_claim("Exam form deadline is 25 September 2026.", state=VerificationState.VERIFIED)
+    claim = make_claim(
+        "Exam form deadline is 25 September 2026.", state=VerificationState.VERIFIED
+    )
     record = provenance(claim, evidence_hash="b" * 64, source_url="https://vgu.ac.in/exams")
     summary = record.human_summary()
     assert claim.id in summary
@@ -228,4 +282,6 @@ def test_human_readable_provenance_contains_chain():
 
 
 def test_claim_fingerprint_is_whitespace_and_case_stable():
-    assert claim_fingerprint("Deadline: 25 September 2026") == claim_fingerprint(" deadline 25 September 2026 ")
+    assert claim_fingerprint("Deadline: 25 September 2026") == claim_fingerprint(
+        " deadline 25 September 2026 "
+    )
