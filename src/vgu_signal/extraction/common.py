@@ -108,9 +108,7 @@ def _parse_date(day: int, month: str, year: int) -> datetime | None:
 def extract_dates(text: str) -> tuple[ExtractedDate, ...]:
     found: list[ExtractedDate] = []
     for match in _DATE_RE.finditer(text):
-        value = _parse_date(
-            int(match.group("day")), match.group("month"), int(match.group("year"))
-        )
+        value = _parse_date(int(match.group("day")), match.group("month"), int(match.group("year")))
         if value is not None:
             found.append(
                 ExtractedDate(
