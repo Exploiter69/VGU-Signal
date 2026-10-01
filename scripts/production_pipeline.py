@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from datetime import UTC, datetime
 from pathlib import Path
@@ -349,7 +350,54 @@ def run(root: Path) -> int:
         "status": status,
         "evidence": manifest,
     }
-    (root / "manifest.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    manifest_path = root / "manifest.json"
+    manifest_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    manifest_hash = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+    operations = [
+        insert(
+            "backup_manifests",
+            ("id", "created_at", "manifest_hash", "object_count", "byte_count", "r2_prefix"),
+            (
+                f"run:{started.isoformat()}",
+                payload["finished_at"],
+                manifest_hash,
+                len([item for item in manifest if item.get("r2_object")]),
+                sum(
+                    (evidence_dir / f"{item['source_id']}-{item['raw_content_hash']}.bin").stat().st_size
+                    for item in manifest
+                    if item.get("raw_content_hash")
+                ),
+                "evidence/",
+            ),
+        )
+    ]
+    for item in manifest:
+        source_id = str(item["source_id"])
+        status_value = str(item["status"])
+        operations.append(
+            insert(
+                "source_health",
+                (
+                    "source_id",
+                    "last_attempt_at",
+                    "last_success_at",
+                    "last_status",
+                    "consecutive_failures",
+                    "last_error",
+                ),
+                (
+                    source_id,
+                    payload["finished_at"],
+                    payload["finished_at"] if status_value != "FAILED" else None,
+                    status_value,
+                    1 if status_value == "FAILED" else 0,
+                    item.get("error"),
+                ),
+            )
+        )
+    (root / "sql" / "9999_operations.sql").write_text(
+        "\n".join(operations) + "\n", encoding="utf-8"
+    )
     return 1 if status == "FAILED" else 0
 
 
