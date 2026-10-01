@@ -29,7 +29,6 @@ export interface Env {
   EVIDENCE: R2Bucket;
   TELEGRAM_BOT_TOKEN: string;
   TELEGRAM_WEBHOOK_SECRET?: string;
-  WORKER_ORIGIN?: string;
 }
 
 const CATEGORIES = [
