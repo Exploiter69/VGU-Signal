@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from hashlib import sha256
 from typing import cast
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit
 
 from bs4 import BeautifulSoup
 from pydantic import HttpUrl
@@ -43,6 +43,8 @@ def extract_document(
         href = anchor.get("href")
         if isinstance(href, str) and href.strip():
             absolute = urljoin(url, href.strip())
+            if urlsplit(absolute).scheme.lower() not in {"http", "https"}:
+                continue
             if absolute not in seen_links:
                 seen_links.add(absolute)
                 links.append(cast(HttpUrl, absolute))
