@@ -97,6 +97,17 @@ export async function sendMessage(
   });
 }
 
+export async function getWebhookInfo(token: string): Promise<{
+  url: string;
+  has_custom_certificate: boolean;
+  pending_update_count: number;
+  last_error_date?: number;
+  last_error_message?: string;
+  ip_address?: string;
+}> {
+  return telegramRequest(token, "getWebhookInfo", {});
+}
+
 export async function setWebhook(
   token: string,
   url: string,
