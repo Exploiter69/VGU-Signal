@@ -1,8 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {formatList} from "../src/format.ts";
+import type {InfoRow} from "../src/queries.ts";
 
-const base = {
+const base: InfoRow = {
   id: "item-1",
   claim_id: "claim-1",
   title: "VGU Fee Notice",
