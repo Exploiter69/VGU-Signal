@@ -22,6 +22,8 @@ jobs:
         run: mypy src
       - name: Tests
         run: pytest -q
+      - name: Production pipeline syntax
+        run: python -m compileall -q scripts
 
   worker:
     runs-on: ubuntu-latest
