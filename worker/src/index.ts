@@ -768,13 +768,13 @@ export default {
         }});
       }
       const dbCheck = await env.DB.prepare("SELECT 1 AS ok").first<{ok: number}>().catch(() => null);
-      const r2Check = await env.EVIDENCE.list({limit: 1}).then(() => true).catch(() => false);
+      const evidenceCheck = await env.DB.prepare("SELECT 1 AS ok FROM evidence_blobs LIMIT 1").first<{ok: number}>().catch(() => null);
       return Response.json({
         service: "vgu-signal-worker",
-        status: dbCheck?.ok === 1 && r2Check ? "ok" : "degraded",
+        status: dbCheck?.ok === 1 && evidenceCheck ? "ok" : "degraded",
         phase: 6,
-        dependencies: {d1: dbCheck?.ok === 1, r2: r2Check},
-      }, {status: dbCheck?.ok === 1 && r2Check ? 200 : 503});
+        dependencies: {d1: dbCheck?.ok === 1, evidence: Boolean(evidenceCheck)},
+      }, {status: dbCheck?.ok === 1 && evidenceCheck ? 200 : 503});
     }
     if (request.method !== "POST") return new Response("Method Not Allowed", {status: 405});
     if (env.TELEGRAM_WEBHOOK_SECRET) {
