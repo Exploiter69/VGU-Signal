@@ -68,35 +68,12 @@ jobs:
           mkdir -p artifacts/verification
           python scripts/prepare_verification_batch.py             --submissions artifacts_verification_submissions.json             --archive artifacts/archive.json             --conflicts artifacts/conflicts.json             --objects artifacts/verification             --out artifacts/batch.json
 
-      - name: Download submitted media
+      - name: Reconstruct submitted media from D1
         run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          data = json.loads(Path("artifacts_verification_submissions.json").read_text())
-          rows = data[0]["results"] if isinstance(data, list) and data else []
-          for row in rows:
-              key = row.get("object_key")
-              if not key:
-                  continue
-              out = Path("artifacts/verification") / row["id"]
-              out.parent.mkdir(parents=True, exist_ok=True)
-              print(f"{key}\t{out}")
-          PY
-          while IFS=$'\t' read -r key out; do
-            [ -n "$key" ] || continue
-            npx wrangler --config worker/wrangler.toml r2 object get "vgu-signal-evidence/$key" --file "$out" --remote
-          done < <(
-            python - <<'PY'
-          import json
-          from pathlib import Path
-          data = json.loads(Path("artifacts_verification_submissions.json").read_text())
-          rows = data[0]["results"] if isinstance(data, list) and data else []
-          for row in rows:
-              if row.get("object_key"):
-                  print(row["object_key"] + "\tartifacts/verification/" + row["id"])
-          PY
-          )
+          mkdir -p artifacts/verification
+          python scripts/export_verification_blobs.py \
+            --submissions artifacts_verification_submissions.json \
+            --objects artifacts/verification
 
       - name: Process submissions
         run: |
