@@ -407,3 +407,25 @@ A student can subscribe, configure relevance preferences, receive a relevant ver
 ### Phase 8 trust invariant
 
 > Convenience features render the same verified information model; they do not create a second authority or infer truth from user language.
+
+
+## Phase 9 — AI augmentation
+
+Phase 9 is an optional remote-AI layer. Local LLM inference is deliberately excluded.
+
+### Execution contract
+
+1. Keep official evidence and verified InformationItems authoritative.
+2. Retrieve only current verified information before asking the model to interpret it.
+3. Require structured AI output containing evidence IDs.
+4. Reject answers with missing, malformed or out-of-set citations.
+5. Render official source URLs alongside successful AI answers.
+6. Cache remote embeddings in D1 when available; use deterministic cosine similarity.
+7. Keep /ask, /explain and /summary optional and fall back to Phase 8 deterministic search if AI is unavailable.
+8. Allow AI to assist community-submission comparison only after deterministic official candidates are found; never let AI set verification state.
+9. Keep evaluation and hallucination tests deterministic and provider-independent.
+10. Never require a paid provider or local inference.
+
+### Exit gate
+
+**COMPLETE.** Remote AI assistance is optional, evidence-grounded, citation-validated, semantically retrievable, tested, and unable to mutate authoritative state.
