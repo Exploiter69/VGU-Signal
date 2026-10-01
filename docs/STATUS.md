@@ -4,9 +4,9 @@
 
 ## Current stage
 
-**Phase 4 — Student Information Model: COMPLETE.**
+**Phase 8 — Search, Calendar and Quality-of-Life Features: COMPLETE.**
 
-Phase 0, Phase 1, Phase 2 and Phase 3 remain closed. Phase 4 adds the stable delivery-neutral information layer between verified claims and future clients.
+Phase 0 through Phase 7 remain closed. Phase 8 adds deterministic search, personalized views, calendar export, deadline-collision warnings and document/event shortcuts on top of the verified information layer.
 
 ## Phase 4 implementation
 
