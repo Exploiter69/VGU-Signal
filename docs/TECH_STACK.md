@@ -101,7 +101,7 @@ OCR is an explicit fallback for scanned/image-only documents. It is not run blin
 
 Production transactional state targets **Cloudflare D1**.
 
-Raw evidence artifacts target **Cloudflare R2** when retention is useful and within the free allowance.
+Raw evidence artifacts target **Cloudflare D1** as content-addressed chunks. D1 remains on the Workers Free plan; the design does not depend on a billing-gated object store.
 
 The Python acquisition jobs do not directly become a long-running server. They run as scheduled GitHub Actions jobs and write through narrowly scoped interfaces.
 
