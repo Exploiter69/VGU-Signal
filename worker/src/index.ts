@@ -617,12 +617,26 @@ async function handleVerificationMedia(
 
 async function handleUpdate(env: Env, update: TelegramUpdate, origin: string): Promise<void> {
   const message = update.message;
-  if (!message?.from) return;
+  console.log(JSON.stringify({
+    event: "telegram_update",
+    updateId: update.update_id,
+    hasMessage: Boolean(message),
+    hasFrom: Boolean(message?.from),
+    chatType: message?.chat?.type ?? null,
+    messageId: message?.message_id ?? null,
+    command: message?.text?.trim().split(/\\s+/)[0]?.toLowerCase() ?? null,
+  }));
+  if (!message?.from) {
+    console.log(JSON.stringify({event: "telegram_drop", reason: "missing_message_or_from", updateId: update.update_id}));
+    return;
+  }
   if (!privateChat(update)) {
     await sendMessage(env.TELEGRAM_BOT_TOKEN, message.chat.id, "Please use VGU Signal in a private chat.");
     return;
   }
+  console.log(JSON.stringify({event: "telegram_private_chat", updateId: update.update_id, userId: message.from.id, chatId: message.chat.id}));
   const user = await upsertUser(env.DB, message.from.id);
+  console.log(JSON.stringify({event: "telegram_user_upserted", updateId: update.update_id, userId: user.id}));
   const text = (message.text ?? "").trim();
   if (message.document || message.photo) {
     await handleVerificationMedia(env, user.id, message.chat.id, message);
@@ -640,7 +654,9 @@ async function handleUpdate(env: Env, update: TelegramUpdate, origin: string): P
   if (text.toLowerCase() === "/cancel") {
     if (await handleOnboarding(env, user.id, message.chat.id, text, env.TELEGRAM_BOT_TOKEN)) return;
   }
+  console.log(JSON.stringify({event: "telegram_command_dispatch", updateId: update.update_id, command: text.toLowerCase().split(/\\s+/)[0] ?? ""}));
   await handleCommand(env, user.id, message.chat.id, text, env.TELEGRAM_BOT_TOKEN, origin);
+  console.log(JSON.stringify({event: "telegram_command_complete", updateId: update.update_id}));
 }
 
 interface NotificationUser {
@@ -795,9 +811,13 @@ export default {
       if (provided !== env.TELEGRAM_WEBHOOK_SECRET) return new Response("Unauthorized", {status: 401});
     }
     try {
-      await handleUpdate(env, (await request.json()) as TelegramUpdate, new URL(request.url).origin);
+      const update = (await request.json()) as TelegramUpdate;
+      console.log(JSON.stringify({event: "telegram_webhook_received", updateId: update.update_id}));
+      await handleUpdate(env, update, new URL(request.url).origin);
+      console.log(JSON.stringify({event: "telegram_webhook_complete", updateId: update.update_id}));
       return new Response("ok");
-    } catch {
+    } catch (error) {
+      console.error(JSON.stringify({event: "telegram_webhook_error", error: error instanceof Error ? error.message : String(error)}));
       return new Response("Bad request", {status: 500});
     }
   },
