@@ -102,7 +102,9 @@ jobs:
         run: |
           NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           python scripts/verification_assistant.py             --input artifacts/batch.json             --archive artifacts/batch.json             --out artifacts/verification.sql             --now "$NOW"
-          npx wrangler --config worker/wrangler.toml d1 execute vgu-signal --remote --file artifacts/verification.sql
+          if [ -s artifacts/verification.sql ]; then
+            npx wrangler --config worker/wrangler.toml d1 execute vgu-signal --remote --file artifacts/verification.sql
+          fi
 
       - name: Export pending responses
         working-directory: worker
