@@ -17,7 +17,6 @@ from vgu_signal.information import (
 )
 from vgu_signal.verification import EvidenceClaim, VerificationState
 
-
 NOW = datetime(2026, 10, 1, 9, 0)
 
 
