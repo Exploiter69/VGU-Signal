@@ -219,13 +219,17 @@ OFFICIAL VERIFIED / CONFLICTING / UNVERIFIED
 
 ## Phase 8 — Search, calendar and quality-of-life features
 
-- [ ] Natural-language search over verified information.
-- [ ] “What changed?” timeline.
-- [ ] Personalized “this week” view.
-- [ ] `.ics` calendar export.
-- [ ] Deadline conflict detection.
-- [ ] Important-document shortcuts.
-- [ ] Improved event/calendar views.
+- [x] Natural-language search over verified information.
+- [x] “What changed?” timeline.
+- [x] Personalized “this week” view.
+- [x] `.ics` calendar export.
+- [x] Deadline conflict detection.
+- [x] Important-document shortcuts.
+- [x] Improved event/calendar views.
+
+**Phase 8 implementation notes:** Search remains deterministic and does not introduce an LLM: supported natural-language category aliases and bounded relative time phrases are parsed into verified archive filters. Change history reads explicit Phase 4 relationships. Personalized weekly/event/document views reuse the existing scope/category/trust filters. Calendar export uses a hashed expiring token and generates iCalendar from current verified information on demand. Deadline conflicts are conservative time-proximity warnings rather than claims of impossible scheduling.
+
+**Exit gate:** COMPLETE. All seven Phase 8 search, timeline, personalization, calendar export, conflict, document shortcut and event/calendar view requirements are implemented with deterministic tests and the full repository quality gate.
 
 ## Phase 9 — AI augmentation
 
