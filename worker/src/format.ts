@@ -74,8 +74,9 @@ export function formatList(title: string, items: InfoRow[]): string {
     }
   }
 
-  const heading = title.toLowerCase().startsWith("verified ")
-    ? title.replace(" results", " information")
+  const headingMatch = title.match(/^Verified ([A-Za-z]+) results$/i);
+  const heading = headingMatch
+    ? `Verified VGU ${headingMatch[1].toLowerCase()} information`
     : title;
 
   const sections = [...groups.values()].map(({item, facts}, index) => {
