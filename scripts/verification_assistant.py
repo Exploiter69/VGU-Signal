@@ -14,7 +14,9 @@ STOP_WORDS = {
     "a", "an", "and", "are", "be", "by", "for", "from", "in", "is", "of",
     "on", "or", "that", "the", "this", "to", "with", "vgu", "notice", "please",
 }
-DATE_PATTERN = re.compile(r"\b(?:\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4}|[A-Za-z]{3,9}\s+\d{1,2},\s+\d{4})\b")
+DATE_PATTERN = re.compile(
+    r"\b(?:\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4}|[A-Za-z]{3,9}\s+\d{1,2},\s+\d{4})\b"
+)
 
 
 @dataclass(frozen=True)
@@ -60,8 +62,13 @@ def score_submission(submitted: str, candidate: Candidate) -> tuple[float, str]:
     dates_left = date_tokens(submitted)
     dates_right = date_tokens(
         " ".join(
-            value for value in
-            (candidate.summary, candidate.statement, candidate.due_at, candidate.starts_at)
+            value
+            for value in (
+                candidate.summary,
+                candidate.statement,
+                candidate.due_at,
+                candidate.starts_at,
+            )
             if value
         )
     )
@@ -171,8 +178,14 @@ def run(input_path: Path, archive_path: Path, out_path: Path, now: str) -> int:
             except Exception as exc:
                 output.append(
                     build_sql(
-                        submission_id, "FAILED", f"Extraction failed: {exc}", None,
-                        None, [], now, "Automatic extraction failed; manual review required."
+                        submission_id,
+                        "FAILED",
+                        f"Extraction failed: {exc}",
+                        None,
+                        None,
+                        [],
+                        now,
+                        "Automatic extraction failed; manual review required.",
                     )
                 )
                 continue
@@ -195,8 +208,14 @@ def run(input_path: Path, archive_path: Path, out_path: Path, now: str) -> int:
             review_reason = "No strong deterministic official match."
         output.append(
             build_sql(
-                submission_id, status, summary, text, extraction_kind, scores, now, review_reason
-                if status != "MATCHED" else None,
+                submission_id,
+                status,
+                summary,
+                text,
+                extraction_kind,
+                scores,
+                now,
+                review_reason if status != "MATCHED" else None,
             )
         )
 
