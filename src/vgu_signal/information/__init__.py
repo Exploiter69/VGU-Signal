@@ -10,8 +10,8 @@ from vgu_signal.information.models import (
     InformationCategory,
     InformationItem,
     InformationRelationship,
-    InformationRelationshipKind,
     Importance,
+    InformationRelationshipKind,
     StudentScope,
     Urgency,
 )
