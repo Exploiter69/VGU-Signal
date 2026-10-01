@@ -40,7 +40,7 @@ class StudentScope(BaseModel):
     year: int | None = Field(default=None, ge=1, le=10)
     semester: int | None = Field(default=None, ge=1, le=20)
 
-    def matches(self, other: "StudentScope") -> bool:
+    def matches(self, other: StudentScope) -> bool:
         return all(
             expected is None or actual is None or expected == actual
             for expected, actual in (
@@ -113,7 +113,7 @@ class InformationArchive(BaseModel):
 
     items: tuple[InformationItem, ...] = ()
 
-    def add(self, item: InformationItem) -> "InformationArchive":
+    def add(self, item: InformationItem) -> InformationArchive:
         if any(existing.id == item.id for existing in self.items):
             raise ValueError(f"duplicate information item id: {item.id}")
         return self.model_copy(update={"items": (*self.items, item)})
