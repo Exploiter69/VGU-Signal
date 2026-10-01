@@ -377,3 +377,8 @@ ModeratorReviewQueue
 ~~~
 
 Verification submissions are user-provided material and never become authoritative evidence. Only existing verified InformationItem records can support a verification match. A missing match remains UNVERIFIED.
+
+
+## Phase 8 Calendar Export Tokens
+
+`calendar_export_tokens` stores only a SHA-256 hash of the private export token, the owning user, creation/expiry timestamps and last-use time. The token is scoped to one user and expires after 90 days. Calendar requests resolve the token to that user, then query current VERIFIED InformationItem rows using the user's existing scope/preferences. The raw token is never persisted.

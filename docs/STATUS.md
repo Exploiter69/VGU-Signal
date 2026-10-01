@@ -136,3 +136,24 @@ Migration 0007_verification_assistant.sql contains submission, match and review 
 ## Next gate
 
 **Phase 8 — Search, calendar and quality-of-life features.**
+
+
+## Phase 8 implementation
+
+**Phase 8 — Search, calendar and quality-of-life features: COMPLETE.**
+
+- deterministic natural-language verified search;
+- 30-day “what changed?” timeline;
+- personalized current-week view;
+- expiring private .ics calendar export;
+- conservative deadline collision detection;
+- important-document shortcuts;
+- improved events/holidays/calendar view.
+
+Migration 0008_phase8_calendar_exports.sql contains durable calendar-export token state. See docs/PHASE8_SEARCH_CALENDAR_QOL.md.
+
+## Phase 8 exit gate
+
+**COMPLETE.** All seven roadmap requirements are implemented without changing the evidence/verification authority boundary.
+
+**Next gate: Phase 9 — AI augmentation.**

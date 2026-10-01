@@ -1,14 +1,22 @@
 import {formatInfo, formatList, formatPreferences} from "./format";
+import {buildIcs, parseNaturalIntent, potentialDeadlineConflicts, sha256Hex, utcWeekRange} from "./phase8";
 import {
   clearSession,
   findVerificationMatches,
   getLatest,
   getPreferences,
+  createCalendarToken,
+  getCalendarTokenUser,
+  getCalendarItems,
+  getChangedTimeline,
+  getDeadlineConflicts,
+  getImportantDocuments,
   getSession,
   getUpcoming,
   matchesQuietHours,
   parseCategories,
   searchInformation,
+  searchNaturalInformation,
   setPreference,
   setSession,
   upsertUser,
@@ -265,7 +273,60 @@ async function handleSearch(
   await sendMessage(token, chatId, [heading, ...items.map((item, index) => formatInfo(item, index + 1))].join("\n\n"));
 }
 
-async function handleCommand(env: Env, userId: string, chatId: number, text: string, token: string): Promise<void> {
+async function handlePhase8Search(env: Env, preferences: Awaited<ReturnType<typeof getPreferences>>, chatId: number, token: string, query: string): Promise<void> {
+  if (!preferences) return;
+  if (!query) { await sendMessage(token, chatId, "Usage: /search <words or a question>"); return; }
+  const intent = parseNaturalIntent(query, new Date());
+  const items = await searchNaturalInformation(env.DB, preferences, new Date(), intent, 10);
+  await sendMessage(token, chatId, formatList(intent.category ? `Verified ${intent.category.toLowerCase()} results` : "Verified search results", items));
+}
+
+async function handleThisWeek(env: Env, preferences: Awaited<ReturnType<typeof getPreferences>>, chatId: number, token: string): Promise<void> {
+  if (!preferences) return;
+  const {start, end} = utcWeekRange(new Date());
+  const items = await searchNaturalInformation(env.DB, preferences, new Date(), {textQuery: "", start, end, sort: "time"}, 12);
+  await sendMessage(token, chatId, formatList("Your VGU Signal — this week", items));
+}
+
+async function handleChanges(env: Env, preferences: Awaited<ReturnType<typeof getPreferences>>, chatId: number, token: string): Promise<void> {
+  if (!preferences) return;
+  const items = await getChangedTimeline(env.DB, preferences, new Date(), 30, 10);
+  if (!items.length) { await sendMessage(token, chatId, "<b>What changed?</b>\\nNo verified changes were recorded in the last 30 days."); return; }
+  const lines = items.map((item, index) => `<b>${index + 1}. ${item.change_kind}</b> — ${item.title}${item.old_title ? `; previous: ${item.old_title}` : ""}\\n${item.summary}\\nSource: <a href="${item.primary_source_url}">official source</a>`);
+  await sendMessage(token, chatId, "<b>What changed? — last 30 days</b>\\n\\n" + lines.join("\\n\\n"));
+}
+
+async function handleEvents(env: Env, preferences: Awaited<ReturnType<typeof getPreferences>>, chatId: number, token: string): Promise<void> {
+  if (!preferences) return;
+  await sendMessage(token, chatId, formatList("Events, holidays and calendar dates", await getCalendarItems(env.DB, preferences, new Date(), 30, 15)));
+}
+
+async function handleDocuments(env: Env, preferences: Awaited<ReturnType<typeof getPreferences>>, chatId: number, token: string): Promise<void> {
+  if (!preferences) return;
+  await sendMessage(token, chatId, formatList("Important VGU documents", await getImportantDocuments(env.DB, preferences, new Date(), 10)));
+}
+
+async function handleDeadlineConflicts(env: Env, preferences: Awaited<ReturnType<typeof getPreferences>>, chatId: number, token: string): Promise<void> {
+  if (!preferences) return;
+  const items = await getDeadlineConflicts(env.DB, preferences, new Date(), 14, 24, 30);
+  const groups = potentialDeadlineConflicts(items);
+  if (!groups.length) { await sendMessage(token, chatId, "<b>Deadline conflicts</b>\\nNo potential deadline collisions were found in the next 14 days."); return; }
+  const byId = new Map(items.map((item) => [item.id, item]));
+  const text = groups.map((group, index) => `<b>${index + 1}. Potential collision around ${group.due_at}</b>\\n${group.item_ids.map((id) => byId.get(id)).filter(Boolean).map((item) => `• ${item!.title} — ${item!.due_at}`).join("\\n")}`).join("\\n\\n");
+  await sendMessage(token, chatId, "<b>Potential deadline conflicts</b>\\nThese are time-proximity warnings, not claims that the university has scheduled an impossible overlap.\\n\\n" + text);
+}
+
+async function handleCalendarLink(env: Env, userId: string, chatId: number, token: string, origin: string): Promise<void> {
+  const rawToken = crypto.randomUUID() + crypto.randomUUID().replaceAll("-", "");
+  const tokenHash = await sha256Hex(rawToken);
+  const expiresAt = new Date(Date.now() + 90 * 86400000).toISOString();
+  await createCalendarToken(env.DB, userId, tokenHash, expiresAt);
+  const url = new URL("/calendar.ics", origin || "https://vgu-signal.invalid");
+  url.searchParams.set("token", rawToken);
+  await sendMessage(token, chatId, `<b>Calendar export</b>\\n\\nYour personalized verified events/deadlines are available as an iCalendar feed for 90 days:\\n<a href="${url.toString()}">Open calendar feed</a>\\n\\nKeep this URL private because it represents your current VGU Signal preferences.`);
+}
+
+async function handleCommand(env: Env, userId: string, chatId: number, text: string, token: string, origin: string): Promise<void> {
   const {command, args} = commandParts(text);
   const preferences = await getPreferences(env.DB, userId);
   switch (command) {
@@ -286,7 +347,25 @@ async function handleCommand(env: Env, userId: string, chatId: number, text: str
       await dispatchList(env, preferences, chatId, token, "upcoming");
       return;
     case "/search":
-      await handleSearch(env, preferences, chatId, token, args, false);
+      await handlePhase8Search(env, preferences, chatId, token, args);
+      return;
+    case "/week":
+      await handleThisWeek(env, preferences, chatId, token);
+      return;
+    case "/changes":
+      await handleChanges(env, preferences, chatId, token);
+      return;
+    case "/events":
+      await handleEvents(env, preferences, chatId, token);
+      return;
+    case "/documents":
+      await handleDocuments(env, preferences, chatId, token);
+      return;
+    case "/conflicts":
+      await handleDeadlineConflicts(env, preferences, chatId, token);
+      return;
+    case "/calendar":
+      await handleCalendarLink(env, userId, chatId, token, origin);
       return;
     case "/verify":
       await handleSearch(env, preferences, chatId, token, args, true);
@@ -438,7 +517,7 @@ async function handleVerificationMedia(
 }
 
 
-async function handleUpdate(env: Env, update: TelegramUpdate): Promise<void> {
+async function handleUpdate(env: Env, update: TelegramUpdate, origin: string): Promise<void> {
   const message = update.message;
   if (!message?.from) return;
   if (!privateChat(update)) {
@@ -461,7 +540,7 @@ async function handleUpdate(env: Env, update: TelegramUpdate): Promise<void> {
     return;
   }
   if (await handleOnboarding(env, user.id, message.chat.id, text, env.TELEGRAM_BOT_TOKEN)) return;
-  await handleCommand(env, user.id, message.chat.id, text, env.TELEGRAM_BOT_TOKEN);
+  await handleCommand(env, user.id, message.chat.id, text, env.TELEGRAM_BOT_TOKEN, origin);
 }
 
 interface NotificationUser {
@@ -575,6 +654,21 @@ function isoWeekKey(date: Date): string {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method === "GET") {
+      const requestUrl = new URL(request.url);
+      if (requestUrl.pathname === "/calendar.ics") {
+        const rawToken = requestUrl.searchParams.get("token");
+        if (!rawToken) return new Response("Missing token", {status: 400});
+        const userId = await getCalendarTokenUser(env.DB, await sha256Hex(rawToken), new Date());
+        if (!userId) return new Response("Invalid or expired calendar token", {status: 404});
+        const preferences = await getPreferences(env.DB, userId);
+        if (!preferences) return new Response("User not found", {status: 404});
+        const body = buildIcs(await getCalendarItems(env.DB, preferences, new Date(), 90, 100));
+        return new Response(body, {headers: {
+          "content-type": "text/calendar; charset=utf-8",
+          "content-disposition": 'attachment; filename="vgu-signal.ics"',
+          "cache-control": "private, max-age=300",
+        }});
+      }
       const dbCheck = await env.DB.prepare("SELECT 1 AS ok").first<{ok: number}>().catch(() => null);
       const r2Check = await env.EVIDENCE.list({limit: 1}).then(() => true).catch(() => false);
       return Response.json({
@@ -590,7 +684,7 @@ export default {
       if (provided !== env.TELEGRAM_WEBHOOK_SECRET) return new Response("Unauthorized", {status: 401});
     }
     try {
-      await handleUpdate(env, (await request.json()) as TelegramUpdate);
+      await handleUpdate(env, (await request.json()) as TelegramUpdate, new URL(request.url).origin);
       return new Response("ok");
     } catch {
       return new Response("Bad request", {status: 500});

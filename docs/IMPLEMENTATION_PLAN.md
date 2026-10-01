@@ -384,3 +384,26 @@ A student can subscribe, configure relevance preferences, receive a relevant ver
 ### Phase 7 exit gate
 
 **COMPLETE.**
+
+
+## Phase 8 — Search, calendar and quality-of-life features
+
+**Status: COMPLETE.** See docs/PHASE8_SEARCH_CALENDAR_QOL.md.
+
+### Exit-gate checklist
+- [x] Natural-language search over verified information.
+- [x] “What changed?” timeline.
+- [x] Personalized “this week” view.
+- [x] `.ics` calendar export.
+- [x] Deadline conflict detection.
+- [x] Important-document shortcuts.
+- [x] Improved event/calendar views.
+- [x] Deterministic Worker tests cover search intent, week ranges, deadline collision grouping and iCalendar generation.
+- [x] Calendar export tokens are hashed, scoped to a user and expiring.
+- [x] No Phase 8 path bypasses the VERIFIED InformationItem boundary.
+- [x] No paid dependency introduced.
+- [x] Roadmap, status and Phase 8 contract synchronized.
+
+### Phase 8 trust invariant
+
+> Convenience features render the same verified information model; they do not create a second authority or infer truth from user language.
