@@ -154,8 +154,7 @@ def run(input_path: Path, archive_path: Path, out_path: Path, now: str) -> int:
     submissions = json.loads(input_path.read_text(encoding="utf-8"))
     archive = json.loads(archive_path.read_text(encoding="utf-8"))
     candidates = [Candidate(**row) for row in archive["items"]]
-    conflicts = {tuple(row) for row in archive.get("conflicts", [])}
-    conflict_ids = {item for pair in conflicts for item in pair}
+    conflict_ids = {row["item_id"] for row in archive.get("conflicts", [])}
 
     output: list[str] = []
     for row in submissions["submissions"]:
