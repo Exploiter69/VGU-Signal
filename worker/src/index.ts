@@ -8,6 +8,7 @@ import {
   createCalendarToken,
   getCalendarTokenUser,
   getCalendarItems,
+  getCalendarFeedItems,
   getChangedTimeline,
   getDeadlineConflicts,
   getImportantDocuments,
@@ -662,7 +663,7 @@ export default {
         if (!userId) return new Response("Invalid or expired calendar token", {status: 404});
         const preferences = await getPreferences(env.DB, userId);
         if (!preferences) return new Response("User not found", {status: 404});
-        const body = buildIcs(await getCalendarItems(env.DB, preferences, new Date(), 90, 100));
+        const body = buildIcs(await getCalendarFeedItems(env.DB, preferences, new Date(), 90, 100));
         return new Response(body, {headers: {
           "content-type": "text/calendar; charset=utf-8",
           "content-disposition": 'attachment; filename="vgu-signal.ics"',
