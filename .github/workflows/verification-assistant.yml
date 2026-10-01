@@ -48,20 +48,20 @@ jobs:
 
       - name: Apply verification migration
         working-directory: worker
-        run: npx wrangler d1 migrations apply vgu-signal --remote
+        run: npx wrangler --config wrangler.toml d1 migrations apply vgu-signal --remote
 
       - name: Export queued submissions
         working-directory: worker
         run: |
-          npx wrangler d1 execute vgu-signal --remote --json --command             "SELECT * FROM verification_submissions WHERE status = 'QUEUED' ORDER BY created_at ASC LIMIT 10"             > ../artifacts_verification_submissions.json
+          npx wrangler --config worker/wrangler.toml d1 execute vgu-signal --remote --json --command             "SELECT * FROM verification_submissions WHERE status = 'QUEUED' ORDER BY created_at ASC LIMIT 10"             > ../artifacts_verification_submissions.json
 
       - name: Export verified archive
         working-directory: worker
         run: |
           mkdir -p ../artifacts
           NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          npx wrangler d1 execute vgu-signal --remote --json --command             "SELECT i.*, c.state AS claim_state FROM information_items i JOIN claims c ON c.id=i.claim_id WHERE c.state='VERIFIED' AND (i.effective_from IS NULL OR i.effective_from <= '$NOW') AND (i.effective_until IS NULL OR i.effective_until > '$NOW') AND NOT EXISTS (SELECT 1 FROM information_relationships r WHERE r.old_item_id=i.id AND r.kind='SUPERSEDES')"             > ../artifacts/archive.json
-          npx wrangler d1 execute vgu-signal --remote --json --command             "SELECT DISTINCT i.id AS item_id FROM information_items i JOIN claims c ON c.id=i.claim_id JOIN claim_relationships r ON (r.left_claim_id=c.id OR r.right_claim_id=c.id) WHERE r.kind='CONFLICTS'"             > ../artifacts/conflicts.json
+          npx wrangler --config worker/wrangler.toml d1 execute vgu-signal --remote --json --command             "SELECT i.*, c.state AS claim_state FROM information_items i JOIN claims c ON c.id=i.claim_id WHERE c.state='VERIFIED' AND (i.effective_from IS NULL OR i.effective_from <= '$NOW') AND (i.effective_until IS NULL OR i.effective_until > '$NOW') AND NOT EXISTS (SELECT 1 FROM information_relationships r WHERE r.old_item_id=i.id AND r.kind='SUPERSEDES')"             > ../artifacts/archive.json
+          npx wrangler --config worker/wrangler.toml d1 execute vgu-signal --remote --json --command             "SELECT DISTINCT i.id AS item_id FROM information_items i JOIN claims c ON c.id=i.claim_id JOIN claim_relationships r ON (r.left_claim_id=c.id OR r.right_claim_id=c.id) WHERE r.kind='CONFLICTS'"             > ../artifacts/conflicts.json
 
       - name: Prepare batch
         run: |
@@ -85,7 +85,7 @@ jobs:
           PY
           while IFS=$'\t' read -r key out; do
             [ -n "$key" ] || continue
-            npx wrangler r2 object get "vgu-signal-evidence/$key" --file "$out" --remote
+            npx wrangler --config worker/wrangler.toml r2 object get "vgu-signal-evidence/$key" --file "$out" --remote
           done < <(
             python - <<'PY'
           import json
@@ -102,18 +102,18 @@ jobs:
         run: |
           NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           python scripts/verification_assistant.py             --input artifacts/batch.json             --archive artifacts/batch.json             --out artifacts/verification.sql             --now "$NOW"
-          npx wrangler d1 execute vgu-signal --remote --file artifacts/verification.sql
+          npx wrangler --config worker/wrangler.toml d1 execute vgu-signal --remote --file artifacts/verification.sql
 
       - name: Export pending responses
         working-directory: worker
         run: |
-          npx wrangler d1 execute vgu-signal --remote --json --command             "SELECT s.*, m.information_item_id, m.score, m.match_reason, i.title, i.summary, i.primary_source_url FROM verification_submissions s LEFT JOIN verification_matches m ON m.submission_id=s.id LEFT JOIN information_items i ON i.id=m.information_item_id WHERE s.status IN ('MATCHED','CONFLICTING','UNVERIFIED','FAILED','REVIEW') AND s.response_sent_at IS NULL ORDER BY s.processed_at ASC LIMIT 20"             > ../artifacts/results.json
+          npx wrangler --config worker/wrangler.toml d1 execute vgu-signal --remote --json --command             "SELECT s.*, m.information_item_id, m.score, m.match_reason, i.title, i.summary, i.primary_source_url FROM verification_submissions s LEFT JOIN verification_matches m ON m.submission_id=s.id LEFT JOIN information_items i ON i.id=m.information_item_id WHERE s.status IN ('MATCHED','CONFLICTING','UNVERIFIED','FAILED','REVIEW') AND s.response_sent_at IS NULL ORDER BY s.processed_at ASC LIMIT 20"             > ../artifacts/results.json
 
       - name: Send verification responses
         run: |
           python scripts/send_verification_results.py             --rows artifacts/results.json             --sql artifacts/response.sql
           if [ -s artifacts/response.sql ]; then
-            npx wrangler d1 execute vgu-signal --remote --file artifacts/response.sql
+            npx wrangler --config worker/wrangler.toml d1 execute vgu-signal --remote --file artifacts/response.sql
           fi
 
       - uses: actions/upload-artifact@v4
