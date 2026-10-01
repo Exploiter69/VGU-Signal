@@ -3,6 +3,7 @@ from vgu_signal.information.engine import (
     build_verified_information_item,
     category_from_notice,
     derive_priority,
+    information_item_id,
     search_archive,
 )
 from vgu_signal.information.models import (
@@ -29,5 +30,6 @@ __all__ = [
     "build_verified_information_item",
     "category_from_notice",
     "derive_priority",
+    "information_item_id",
     "search_archive",
 ]
