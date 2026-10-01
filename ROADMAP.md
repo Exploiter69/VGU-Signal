@@ -175,15 +175,15 @@ Cloudflare Worker ← webhook/API
 Telegram
 ```
 
-- [ ] GitHub Actions scheduled pipeline.
-- [ ] D1 schema and migrations.
-- [ ] R2 evidence storage policy.
-- [ ] Worker webhook/API.
-- [ ] Secret management.
-- [ ] Rate-limit safeguards.
-- [ ] Failure/retry strategy.
-- [ ] Operational health checks.
-- [ ] Backup/recovery procedure.
+- [x] GitHub Actions scheduled pipeline.
+- [x] D1 schema and migrations.
+- [x] R2 evidence storage policy.
+- [x] Worker webhook/API.
+- [x] Secret management.
+- [x] Rate-limit safeguards.
+- [x] Failure/retry strategy.
+- [x] Operational health checks.
+- [x] Backup/recovery procedure.
 
 Free-tier limits must be rechecked before deployment and monitored in production. No paid-tier assumption may be hidden in code or documentation.
 
