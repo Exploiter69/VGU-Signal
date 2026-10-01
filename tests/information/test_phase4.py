@@ -142,10 +142,14 @@ def test_source_links_and_temporal_fields_are_preserved():
         "timed",
         published_at=datetime(2026, 9, 28, 12, 0),
         effective_until=datetime(2026, 10, 10, 0, 0),
-    ).model_copy(update={"source_links": (
-        "https://vgu.ac.in/notice.pdf",
-        "https://vgu.ac.in/notices",
-    )})
+    ).model_copy(
+        update={
+            "source_links": (
+                "https://vgu.ac.in/notice.pdf",
+                "https://vgu.ac.in/notices",
+            )
+        }
+    )
     assert len(item.source_links) == 2
     assert item.primary_source_url == "https://vgu.ac.in/notice.pdf"
     assert item.is_effective_at(datetime(2026, 10, 5))
@@ -175,16 +179,21 @@ def test_archive_rejects_duplicate_ids_and_exposes_relationships():
 def test_search_filters_query_category_scope_and_expiration():
     cse = StudentScope(program="B.Tech", branch="CSE", year=2, semester=4)
     ece = StudentScope(program="B.Tech", branch="ECE", year=2, semester=4)
-    archive = InformationArchive().add(
-        make_item("cse", scope=cse)
-    ).add(
-        make_item("ece", scope=ece, title="Holiday notice", summary="Campus holiday on 10 October.")
-    ).add(
-        make_item(
-            "expired",
-            scope=cse,
-            due_at=None,
-            effective_until=datetime(2026, 9, 30),
+    archive = (
+        InformationArchive()
+        .add(make_item("cse", scope=cse))
+        .add(
+            make_item(
+                "ece", scope=ece, title="Holiday notice", summary="Campus holiday on 10 October."
+            )
+        )
+        .add(
+            make_item(
+                "expired",
+                scope=cse,
+                due_at=None,
+                effective_until=datetime(2026, 9, 30),
+            )
         )
     )
     results = archive.search(
@@ -203,8 +212,12 @@ def test_search_filters_query_category_scope_and_expiration():
 
 def test_search_is_delivery_neutral_and_deterministic():
     items = (
-        make_item("low", category=InformationCategory.EVENT, title="Orientation event", summary="Welcome"),
-        make_item("high", category=InformationCategory.FEES, title="Fee deadline", summary="Pay fees"),
+        make_item(
+            "low", category=InformationCategory.EVENT, title="Orientation event", summary="Welcome"
+        ),
+        make_item(
+            "high", category=InformationCategory.FEES, title="Fee deadline", summary="Pay fees"
+        ),
     )
     first = search_archive(items, at=None)
     second = search_archive(items, at=None)
