@@ -67,8 +67,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--submissions", type=Path, required=True)
-    parser.add_argument("--objects", type=Path, required=True)
-    args = parser.parse_args()
     main()
