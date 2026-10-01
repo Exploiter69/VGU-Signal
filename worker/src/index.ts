@@ -1,4 +1,5 @@
 import {formatInfo, formatList, formatPreferences} from "./format";
+import {aiEnabled, cosineSimilarity, embedText, groundedAnswer, renderGroundedAnswer} from "./ai";
 import {buildIcs, parseNaturalIntent, potentialDeadlineConflicts, sha256Hex, utcWeekRange} from "./phase8";
 import {
   clearSession,
@@ -18,6 +19,9 @@ import {
   parseCategories,
   searchInformation,
   searchNaturalInformation,
+  getAiCandidates,
+  getAiEmbedding,
+  saveAiEmbedding,
   setPreference,
   setSession,
   upsertUser,
@@ -30,6 +34,10 @@ export interface Env {
   EVIDENCE: R2Bucket;
   TELEGRAM_BOT_TOKEN: string;
   TELEGRAM_WEBHOOK_SECRET?: string;
+  AI_API_KEY?: string;
+  AI_MODEL?: string;
+  AI_EMBEDDING_MODEL?: string;
+  AI_API_BASE?: string;
 }
 
 const CATEGORIES = [
@@ -274,6 +282,60 @@ async function handleSearch(
   await sendMessage(token, chatId, [heading, ...items.map((item, index) => formatInfo(item, index + 1))].join("\n\n"));
 }
 
+async function handleAiQuestion(
+  env: Env,
+  preferences: Awaited<ReturnType<typeof getPreferences>>,
+  chatId: number,
+  token: string,
+  question: string,
+): Promise<void> {
+  if (!preferences) return;
+  if (!question) { await sendMessage(token, chatId, "Usage: /ask <question>"); return; }
+  if (!aiEnabled(env)) {
+    await handlePhase8Search(env, preferences, chatId, token, question);
+    return;
+  }
+  try {
+    const candidates = (await getAiCandidates(env.DB, preferences, new Date(), 20));
+    if (!candidates.length) {
+      await sendMessage(token, chatId, "No verified VGU information is available to answer that yet.");
+      return;
+    }
+    const queryVector = await embedText(env, question);
+    const model = env.AI_EMBEDDING_MODEL ?? "gemini-embedding-2";
+    const scored: Array<{item: typeof candidates[number]; score: number}> = [];
+    for (const item of candidates) {
+      const content = item.title + "\n" + item.summary + "\n" + item.category;
+      let vector = await getAiEmbedding(env.DB, item.id, model);
+      if (!vector) {
+        vector = await embedText(env, content);
+        await saveAiEmbedding(env.DB, item.id, model, vector, await sha256Hex(content));
+      }
+      scored.push({item, score: cosineSimilarity(queryVector, vector)});
+    }
+    const selected = scored.sort((a, b) => b.score - a.score || a.item.id.localeCompare(b.item.id))
+      .slice(0, 6).map((row) => row.item);
+    const evidence = selected.map((item) => ({
+      id: item.id, title: item.title, summary: item.summary, category: item.category,
+      sourceUrl: item.primary_source_url, dueAt: item.due_at, startsAt: item.starts_at,
+    }));
+    const answer = await groundedAnswer(env, question, evidence);
+    await sendMessage(token, chatId, renderGroundedAnswer(answer, evidence));
+  } catch {
+    await handlePhase8Search(env, preferences, chatId, token, question);
+  }
+}
+
+async function handleAiExplain(
+  env: Env,
+  preferences: Awaited<ReturnType<typeof getPreferences>>,
+  chatId: number,
+  token: string,
+  request: string,
+): Promise<void> {
+  await handleAiQuestion(env, preferences, chatId, token, request ? "Explain this VGU information clearly for a student: " + request : "");
+}
+
 async function handlePhase8Search(env: Env, preferences: Awaited<ReturnType<typeof getPreferences>>, chatId: number, token: string, query: string): Promise<void> {
   if (!preferences) return;
   if (!query) { await sendMessage(token, chatId, "Usage: /search <words or a question>"); return; }
@@ -339,7 +401,7 @@ async function handleCommand(env: Env, userId: string, chatId: number, text: str
       }
       return;
     case "/help":
-      await sendMessage(token, chatId, "<b>VGU Signal commands</b>\n/start — onboarding\n/latest — recent verified information\n/upcoming — upcoming deadlines/events\n/search &lt;words&gt; — search verified archive\n/verify &lt;text&gt; — check for matching official evidence\n/settings — preferences\n/set ... — change one preference\n/categories ... — notification categories\n/reminders on|off\n/digest on|off\n/mute and /unmute\n/quiet HH:MM HH:MM — quiet hours in UTC\n/quiet off");
+      await sendMessage(token, chatId, "<b>VGU Signal commands</b>\n/start — onboarding\n/latest — recent verified information\n/upcoming — upcoming deadlines/events\n/search &lt;words&gt; — search verified archive\n/ask &lt;question&gt; — AI-grounded question (optional)\n/explain &lt;topic&gt; — explain verified information (optional)\n/summary &lt;topic&gt; — summarize verified information (optional)\n/verify &lt;text&gt; — check for matching official evidence\n/settings — preferences\n/set ... — change one preference\n/categories ... — notification categories\n/reminders on|off\n/digest on|off\n/mute and /unmute\n/quiet HH:MM HH:MM — quiet hours in UTC\n/quiet off");
       return;
     case "/latest":
       await dispatchList(env, preferences, chatId, token, "latest");
@@ -349,6 +411,15 @@ async function handleCommand(env: Env, userId: string, chatId: number, text: str
       return;
     case "/search":
       await handlePhase8Search(env, preferences, chatId, token, args);
+      return;
+    case "/ask":
+      await handleAiQuestion(env, preferences, chatId, token, args);
+      return;
+    case "/explain":
+      await handleAiExplain(env, preferences, chatId, token, args);
+      return;
+    case "/summary":
+      await handleAiQuestion(env, preferences, chatId, token, args ? "Summarize the verified VGU information relevant to: " + args : "");
       return;
     case "/week":
       await handleThisWeek(env, preferences, chatId, token);
@@ -433,6 +504,25 @@ async function storeVerificationText(
     : strong.length
       ? "Official verified information matches this submission."
       : "No sufficiently strong official match was found. This does not prove the submission false.";
+  let aiNote = "";
+  if (aiEnabled(env) && strong.length) {
+    try {
+      const evidence = strong.slice(0, 5).map((match) => ({
+        id: match.item.id, title: match.item.title, summary: match.item.summary,
+        category: match.item.category, sourceUrl: match.item.primary_source_url,
+        dueAt: match.item.due_at, startsAt: match.item.starts_at,
+      }));
+      const result = await groundedAnswer(
+        env,
+        "Compare this community submission with the supplied official candidates. Explain similarities or differences only; do not declare the submission authoritative: " + text.slice(0, 6000),
+        evidence,
+      );
+      aiNote = "\n\n<b>AI-assisted comparison</b>\n" + result.answer +
+        "\nSources: " + result.citations.map((id) => evidence.find((item) => item.id === id)?.sourceUrl ?? "").filter(Boolean).join(", ");
+    } catch {
+      aiNote = "";
+    }
+  }
   await env.DB.prepare(
     `INSERT OR IGNORE INTO verification_submissions
      (id,user_id,telegram_chat_id,telegram_message_id,intake_kind,submitted_text,status,result_summary,created_at,processed_at)
@@ -465,7 +555,7 @@ async function storeVerificationText(
   } else if (strong.length) {
     await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId,
       "<b>Official evidence match</b>\n\n" +
-      strong.slice(0, 3).map((match, index) => formatInfo(match.item, index + 1)).join("\n\n"));
+      strong.slice(0, 3).map((match, index) => formatInfo(match.item, index + 1)).join("\n\n") + aiNote);
   } else {
     await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId,
       "<b>Not officially confirmed.</b>\n\nNo sufficiently strong matching official VGU information was found in the current archive. This does not prove the submission false.");

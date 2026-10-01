@@ -4,156 +4,54 @@
 
 ## Current stage
 
-**Phase 8 — Search, Calendar and Quality-of-Life Features: COMPLETE.**
+**Phase 9 — AI Augmentation: COMPLETE.**
 
-Phase 0 through Phase 7 remain closed. Phase 8 adds deterministic search, personalized views, calendar export, deadline-collision warnings and document/event shortcuts on top of the verified information layer.
+Phases 0 through 8 remain closed. Phase 9 adds optional remote AI assistance without requiring a local LLM or paid service. The deterministic verified-information pipeline remains the authority and fallback.
 
-## Phase 4 implementation
+## Phase 9 implementation
 
-The student information model provides:
+- optional remote provider gateway using Worker secrets;
+- source-grounded AI answers with mandatory verified-evidence citations;
+- explanation/summary commands for difficult verified information;
+- remote embedding support with D1 embedding cache and deterministic cosine retrieval;
+- natural-language `/ask` path;
+- AI-assisted community-submission comparison after deterministic official matching;
+- structured-output/citation/cosine evaluation tests;
+- hallucination/grounding rejection for malformed or unsupported citations;
+- deterministic Phase 8 fallback when AI is unavailable.
 
-- explicit DEADLINE, EXAM, FEES, REGISTRATION, NOTICE, EVENT, HOLIDAY and CALENDAR categories;
-- optional program, branch, year and semester applicability dimensions;
-- conservative deterministic scope matching;
-- separate importance and urgency signals;
-- published, effective, expiry, deadline and event timestamps;
-- primary and additional source links;
-- CHANGED, SUPERSEDES and CORRECTS relationships;
-- deterministic searchable InformationArchive;
-- stable information item IDs;
-- a verified-claim construction path that rejects unverified or evidence-missing claims;
-- durable migration 0004_information_model.sql with scope, category, priority, temporal, source-link and relationship indexes.
+Migration: `0009_phase9_ai.sql`.
 
-## Phase 4 regression coverage
+## Phase 9 trust boundary
 
-The deterministic suite covers:
+```
+official source → evidence → verified claim → InformationItem
+                                      ↓
+                           deterministic retrieval
+                                      ↓
+                              AI interpretation
+                                      ↓
+                         answer + official source links
+```
 
-- complete category taxonomy;
-- Phase 2 notice-category mapping;
-- student dimension matching and wildcard behavior;
-- importance/urgency separation;
-- changed-item priority;
-- temporal windows and source-link retention;
-- duplicate archive IDs;
-- change/supersession/correction relationships;
-- text/category/scope/expiry search;
-- deterministic ordering;
-- stable item IDs;
-- rejection of unverified claims at the verified information boundary.
+AI cannot verify claims, mutate authoritative state, create deadlines, or turn community content into official evidence.
 
-Tests remain fixture/generated-input based and do not require the live VGU website, paid services, OCR binaries or LLMs.
+## Phase 9 exit gate
 
-## Phase 4 exit gate
+**COMPLETE.** All eight Phase 9 roadmap requirements are implemented with AI optional, remote-provider based, source-grounded and backed by deterministic fallback behavior.
 
-**COMPLETE.** The same verified information can now be represented once as a delivery-neutral InformationItem and consumed by future Telegram, Worker/API or web clients without duplicating business logic.
+## Earlier phase closure
 
-## Trust and safety invariants retained
-
-- Official public VGU sources remain authoritative.
-- Information relevance does not become information truth.
-- Applicability dimensions do not prove applicability without supporting source material.
-- Verification remains controlled by the Phase 3 evidence chain.
-- Changed, conflicting, superseded and corrected history is retained.
-- Source links remain attached to student-facing information.
-- Authenticated ERP and private WhatsApp data remain out of scope.
-- No paid-service dependency is introduced.
+Phase 0 through Phase 8 are complete. See `ROADMAP.md` and the phase-specific documents for their implementation and exit gates.
 
 ## Quality gate
 
-The synchronized quality gate for Phase 4 is:
+The repository CI runs:
 
-```text
+```
 ruff format --check .
 ruff check .
 mypy src
 pytest -q
-worker: npm install && npm run typecheck
+worker: npm install && npm run typecheck && npm test
 ```
-
-## Next gate
-
-**Phase 5 — Telegram MVP.**
-
-## Phase 5 implementation
-
-The Telegram MVP provides:
-- Telegram Bot API webhook foundation;
-- durable /start onboarding for program, branch, year, semester and categories;
-- /latest, /upcoming, /search, /verify and /settings;
-- source/provenance and changed/superseding/correcting state display;
-- deadline reminders and weekly digest;
-- durable notification deduplication;
-- quiet hours, mute/unmute and per-channel toggles;
-- D1-backed users, preferences, onboarding sessions and notification history.
-
-Migration 0005_telegram_mvp.sql contains the delivery state schema.
-
-## Phase 5 exit gate
-
-**COMPLETE.** A student can subscribe, configure relevance preferences, receive relevant verified information, inspect the official source, and distinguish changed/superseding/correcting information from current information. Notification delivery is durable and respects user controls.
-
-## Next gate
-
-**Phase 6 — Production-free infrastructure.**
-
-
-## Phase 6 implementation
-
-**Phase 6 — Production-free infrastructure: COMPLETE.**
-
-- six-hour GitHub Actions acquisition;
-- deterministic extraction/verification/information generation;
-- immutable R2 evidence objects;
-- D1 migration `0006_operations.sql`;
-- pipeline/source-health/backup operational state;
-- Worker D1/R2 bindings and dependency health checks;
-- secret-management contract;
-- bounded retry/rate-limit policy;
-- recovery procedure and free-tier guardrails.
-
-**Next gate: Phase 7 — Verification assistant.**
-
-
-## Phase 7 implementation
-
-**Phase 7 — Verification assistant: COMPLETE.**
-
-Implemented:
-- voluntary forwarded-message intake;
-- image/PDF intake and extraction;
-- deterministic matching against current verified official information;
-- evidence/source response;
-- conflict explanation without automatic winner selection;
-- explicit “Not officially confirmed” no-match response;
-- durable moderator review queue.
-
-Migration 0007_verification_assistant.sql contains submission, match and review state.
-
-## Phase 7 exit gate
-
-**COMPLETE.** A voluntary student submission can be checked against known official VGU evidence without turning absence of evidence into a false claim.
-
-## Next gate
-
-**Phase 8 — Search, calendar and quality-of-life features.**
-
-
-## Phase 8 implementation
-
-**Phase 8 — Search, calendar and quality-of-life features: COMPLETE.**
-
-- deterministic natural-language verified search;
-- 30-day “what changed?” timeline;
-- personalized current-week view;
-- expiring private .ics calendar export;
-- conservative deadline collision detection;
-- important-document shortcuts;
-- improved events/holidays/calendar view.
-
-Migration 0008_phase8_calendar_exports.sql contains durable calendar-export token state. See docs/PHASE8_SEARCH_CALENDAR_QOL.md.
-
-## Phase 8 exit gate
-
-**COMPLETE.** All seven roadmap requirements are implemented without changing the evidence/verification authority boundary.
-
-**Next gate: Phase 9 — AI augmentation.**

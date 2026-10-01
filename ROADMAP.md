@@ -235,16 +235,16 @@ OFFICIAL VERIFIED / CONFLICTING / UNVERIFIED
 
 Only after the deterministic core is reliable.
 
-- [ ] Optional local LLM gateway.
-- [ ] Source-grounded summaries.
-- [ ] Difficult document explanation.
-- [ ] Semantic retrieval.
-- [ ] Natural-language queries.
-- [ ] Community submission matching.
-- [ ] AI evaluation suite.
-- [ ] Hallucination/grounding tests.
+- [x] Optional remote free-tier AI gateway (local LLM deliberately not required).
+- [x] Source-grounded summaries.
+- [x] Difficult document explanation.
+- [x] Semantic retrieval.
+- [x] Natural-language queries.
+- [x] Community submission matching assistance.
+- [x] AI evaluation suite.
+- [x] Hallucination/grounding tests.
 
-AI outputs must always retain links to the verified evidence they summarize.
+AI outputs must always retain links to the verified evidence they summarize. Phase 9 uses an optional remote provider; no local LLM or paid dependency is required.
 
 ## Phase 10 — Expansion
 
