@@ -31,7 +31,6 @@ import type {TelegramMessage, TelegramUpdate} from "./telegram";
 
 export interface Env {
   DB: D1Database;
-  EVIDENCE: R2Bucket;
   TELEGRAM_BOT_TOKEN: string;
   TELEGRAM_WEBHOOK_SECRET?: string;
   AI_API_KEY?: string;
@@ -590,11 +589,19 @@ async function handleVerificationMedia(
   if (body.byteLength > 10 * 1024 * 1024) throw new Error("downloaded file exceeds verification limit");
   const safeName = (document?.file_name ?? (mime === "application/pdf" ? "submission.pdf" : "submission.jpg"))
     .replace(/[^A-Za-z0-9._-]/g, "_");
-  const objectKey = `verification-submissions/${id}/${safeName}`;
-  await env.EVIDENCE.put(objectKey, body, {
-    httpMetadata: {contentType: mime},
-    customMetadata: {userId, messageId: String(message.message_id)},
-  });
+  const objectKey = `d1://verification-submissions/${id}/${safeName}`;
+  const chunkSize = 32 * 1024;
+  const statements = [];
+  for (let chunkIndex = 0, start = 0; start < body.byteLength; chunkIndex++, start += chunkSize) {
+    const chunk = body.slice(start, Math.min(start + chunkSize, body.byteLength));
+    statements.push(
+      env.DB.prepare(
+        `INSERT OR REPLACE INTO verification_submission_blobs(submission_id,chunk_index,data)
+         VALUES (?, ?, ?)`,
+      ).bind(id, chunkIndex, chunk),
+    );
+  }
+  await env.DB.batch(statements);
   await env.DB.prepare(
     `INSERT OR IGNORE INTO verification_submissions
      (id,user_id,telegram_chat_id,telegram_message_id,intake_kind,content_type,file_name,object_key,submitted_text,status,created_at)
