@@ -57,7 +57,7 @@ Searches title, summary and verified claim statements and remains limited to cur
 
 ### /verify
 
-Performs a conservative text lookup against the current verified archive. A match is presented as official evidence with its source. No match returns "Not officially confirmed" and explicitly does not claim that the submitted statement is false.
+Performs a conservative text lookup against the current verified archive. Verification searches the current verified archive independently of the user's notification-category and student-scope feed filters, so feed preferences cannot hide an official match. A match is presented as official evidence with its source. No match returns "Not officially confirmed" and explicitly does not claim that the submitted statement is false.
 
 ## Provenance and state display
 
