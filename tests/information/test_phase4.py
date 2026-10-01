@@ -3,10 +3,10 @@ from datetime import datetime
 import pytest
 
 from vgu_signal.information import (
+    Importance,
     InformationArchive,
     InformationCategory,
     InformationRelationshipKind,
-    Importance,
     StudentScope,
     Urgency,
     build_information_item,
