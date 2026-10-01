@@ -38,6 +38,14 @@ _BOILERPLATE_MARKERS = (
     "sidebar",
     "social",
     "subscribe",
+    "advert",
+    "banner",
+    "call-to-action",
+    "cta",
+    "marketing",
+    "promotion",
+    "quick-links",
+    "whatsapp",
 )
 
 
@@ -63,6 +71,14 @@ def _remove_boilerplate(soup: BeautifulSoup) -> None:
         )
         if any(term in marker for term in _BOILERPLATE_MARKERS):
             element.decompose()
+            continue
+
+        if element.name in {"div", "section", "ul", "ol"}:
+            text = element.get_text(" ", strip=True)
+            links = element.find_all("a")
+            linked_text = " ".join(link.get_text(" ", strip=True) for link in links)
+            if len(text) >= 40 and len(links) >= 3 and len(linked_text) / max(len(text), 1) >= 0.65:
+                element.decompose()
 
 
 def _content_root(soup: BeautifulSoup):
