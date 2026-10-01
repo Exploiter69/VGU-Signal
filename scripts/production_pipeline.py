@@ -109,7 +109,7 @@ def run(root: Path) -> int:
 
         chunk_size = 32 * 1024
         for chunk_index, start in enumerate(range(0, len(body), chunk_size)):
-            chunk = body[start:start + chunk_size]
+            chunk = body[start : start + chunk_size]
             statements.append(
                 f"INSERT OR REPLACE INTO evidence_blobs(evidence_id,chunk_index,data) "
                 f"VALUES({sql(evidence.id)},{chunk_index},X'{chunk.hex()}');"
