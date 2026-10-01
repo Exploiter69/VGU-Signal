@@ -66,7 +66,7 @@ def main() -> None:
             body += "\n\n".join(
                 f"<b>{index}. {escape(item['title'])}</b>\n"
                 f"{escape(item['summary'])}\n"
-                f"<a href=\"{escape(item['primary_source_url'])}\">Official source</a>"
+                f'<a href="{escape(item["primary_source_url"])}">Official source</a>'
                 for index, item in enumerate(matches[:3], 1)
             )
         elif status == "CONFLICTING":
@@ -75,7 +75,9 @@ def main() -> None:
             body += "\n\nA moderator review is required; no winner is selected automatically."
         elif status == "UNVERIFIED":
             body = "<b>Not officially confirmed.</b>\n\n"
-            body += escape(row["result_summary"] or "No sufficiently strong official match was found.")
+            body += escape(
+                row["result_summary"] or "No sufficiently strong official match was found."
+            )
         else:
             body = "<b>Verification could not be completed automatically.</b>\n\n"
             body += "A moderator review is required."
