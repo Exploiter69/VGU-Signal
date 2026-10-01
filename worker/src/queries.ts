@@ -234,6 +234,53 @@ export async function searchInformation(
   return result.results;
 }
 
+export async function getAiCandidates(
+  db: D1Database,
+  preferences: PreferenceRow,
+  now: Date,
+  limit = 30,
+): Promise<InfoRow[]> {
+  const {sql: scopeSql, params: scopeParams} = scopeConditions(preferences);
+  return (await db.prepare(
+    infoQuery() + scopeSql +
+    " ORDER BY i.importance DESC, COALESCE(i.published_at, i.created_at) DESC, i.id ASC LIMIT ?",
+  ).bind(now.toISOString(), now.toISOString(), ...scopeParams, limit).all<InfoRow>()).results;
+}
+
+export async function getAiEmbedding(
+  db: D1Database,
+  itemId: string,
+  model: string,
+): Promise<number[] | null> {
+  const row = await db.prepare(
+    "SELECT vector_json FROM ai_embeddings WHERE information_item_id = ? AND model = ?",
+  ).bind(itemId, model).first<{vector_json: string}>();
+  if (!row) return null;
+  try {
+    const value = JSON.parse(row.vector_json) as unknown;
+    return Array.isArray(value) && value.every((item) => typeof item === "number") ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveAiEmbedding(
+  db: D1Database,
+  itemId: string,
+  model: string,
+  vector: number[],
+  contentHash: string,
+): Promise<void> {
+  const now = new Date().toISOString();
+  await db.prepare(
+    `INSERT INTO ai_embeddings(information_item_id,model,dimensions,vector_json,content_hash,created_at,updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(information_item_id) DO UPDATE SET model=excluded.model,
+       dimensions=excluded.dimensions, vector_json=excluded.vector_json,
+       content_hash=excluded.content_hash, updated_at=excluded.updated_at`,
+  ).bind(itemId, model, vector.length, JSON.stringify(vector), contentHash, now, now).run();
+}
+
 export function parseCategories(value: string): string[] {
   try {
     const parsed = JSON.parse(value) as unknown;
