@@ -342,3 +342,45 @@ A student can subscribe, configure relevance preferences, receive a relevant ver
 ### Phase 6 exit gate
 
 **COMPLETE.**
+
+
+## Phase 7 — Verification assistant
+
+**Status: COMPLETE.** See docs/PHASE7_VERIFICATION_ASSISTANT.md.
+
+### Step 1 — Voluntary intake
+- [x] Forwarded text intake.
+- [x] Image/PDF intake.
+- [x] Private-chat boundary.
+- [x] Submission size bound.
+
+### Step 2 — Extraction
+- [x] PDF extraction through the existing deterministic extraction pipeline.
+- [x] OCR fallback for PDFs.
+- [x] Tesseract image OCR on the free GitHub runner.
+- [x] Extracted-text size bound.
+
+### Step 3 — Official matching
+- [x] Current VERIFIED information only.
+- [x] Deterministic content comparison.
+- [x] Date comparison.
+- [x] Stable match ordering.
+- [x] Official source links in responses.
+
+### Step 4 — Trust responses
+- [x] Official evidence match.
+- [x] Conflict explanation.
+- [x] Not officially confirmed response.
+- [x] No automatic false verdict.
+- [x] No automatic conflict winner.
+
+### Step 5 — Review and durability
+- [x] Durable submission state.
+- [x] Match history.
+- [x] Moderator review queue.
+- [x] Response-delivery state.
+- [x] 15-minute processing workflow.
+
+### Phase 7 exit gate
+
+**COMPLETE.**
