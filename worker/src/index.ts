@@ -1,4 +1,4 @@
-import {formatInfo, formatList, formatPreferences, formatSearchList} from "./format";
+import {formatInfo, formatList, formatPreferences} from "./format";
 import {aiEnabled, cosineSimilarity, embedText, groundedAnswer, renderGroundedAnswer} from "./ai";
 import {buildIcs, parseNaturalIntent, potentialDeadlineConflicts, sha256Hex, utcWeekRange} from "./phase8";
 import {
