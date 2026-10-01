@@ -1,4 +1,6 @@
 export interface AiEnv { AI_API_KEY?: string; AI_MODEL?: string; AI_EMBEDDING_MODEL?: string; AI_API_BASE?: string; }
+export function aiEnabled(env: AiEnv): boolean { return Boolean(env.AI_API_KEY); }
+
 export interface AiEvidence { id:string; title:string; summary:string; category:string; sourceUrl:string; dueAt?:string|null; startsAt?:string|null; }
 export interface GroundedAnswer { answer:string; citations:string[]; }
 interface GeminiResponse { candidates?: Array<{content?:{parts?:Array<{text?:string}>}}> }
