@@ -337,7 +337,7 @@ async function handleAiExplain(
 
 async function handlePhase8Search(env: Env, preferences: Awaited<ReturnType<typeof getPreferences>>, chatId: number, token: string, query: string): Promise<void> {
   if (!preferences) return;
-  if (!query) { await sendMessage(token, chatId, "Usage: /search <words or a question>"); return; }
+  if (!query) { await sendMessage(token, chatId, "Usage: /search &lt;words or a question&gt;"); return; }
   const intent = parseNaturalIntent(query, new Date());
   const items = await searchNaturalInformation(env.DB, preferences, new Date(), intent, 10);
   await sendMessage(token, chatId, formatList(intent.category ? `Verified ${intent.category.toLowerCase()} results` : "Verified search results", items));
