@@ -222,7 +222,7 @@ def test_search_is_delivery_neutral_and_deterministic():
     first = search_archive(items, at=None)
     second = search_archive(items, at=None)
     assert [item.id for item in first] == [item.id for item in second]
-    assert first[0].importance == Importance.CRITICAL
+    assert first[0].importance == Importance.HIGH
 
 
 def test_information_item_id_is_stable():
