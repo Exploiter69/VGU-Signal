@@ -6,7 +6,7 @@
 
 **Phase 9 — AI Augmentation: COMPLETE.**
 
-Phases 0 through 8 remain closed. Phase 9 adds optional remote AI assistance without requiring a local LLM or paid service. The deterministic verified-information pipeline remains the authority and fallback.
+Phases 0 through 8 remain closed. Phase 9 adds optional remote AI assistance without requiring a local LLM or paid service. Phase 6 now uses D1-only evidence storage so production does not depend on billing-gated R2. The deterministic verified-information pipeline remains the authority and fallback.
 
 ## Phase 9 implementation
 

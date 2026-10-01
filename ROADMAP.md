@@ -39,7 +39,7 @@ This roadmap is the execution plan for VGU Signal. The order is deliberate: **tr
 - [x] Final pytest suite passed.
 - [x] Final Worker typecheck passed.
 
-**Concrete stack:** Python 3.12+, `httpx`, BeautifulSoup, PyMuPDF, pdfplumber, Pydantic where useful, pytest, Ruff and mypy; TypeScript Cloudflare Worker for the delivery boundary; D1/R2 for production state/evidence; GitHub Actions for scheduled acquisition.
+**Concrete stack:** Python 3.12+, `httpx`, BeautifulSoup, PyMuPDF, pdfplumber, Pydantic where useful, pytest, Ruff and mypy; TypeScript Cloudflare Worker for the delivery boundary; D1 for production state/evidence; GitHub Actions for scheduled acquisition.
 
 **Execution plan:** see `docs/IMPLEMENTATION_PLAN.md`, `docs/TECH_STACK.md` and `docs/QUALITY_GATES.md`.
 
@@ -166,9 +166,7 @@ VGU public sources
 GitHub Actions
 (fetch / parse / OCR / hash)
       ↓
-Cloudflare R2 ← raw evidence artifacts
-      ↓
-Cloudflare D1 ← live application state
+Cloudflare D1 ← live application state + raw evidence chunks
       ↓
 Cloudflare Worker ← webhook/API
       ↓
@@ -177,7 +175,7 @@ Telegram
 
 - [x] GitHub Actions scheduled pipeline.
 - [x] D1 schema and migrations.
-- [x] R2 evidence storage policy.
+- [x] D1 content-addressed evidence storage policy (R2-free).
 - [x] Worker webhook/API.
 - [x] Secret management.
 - [x] Rate-limit safeguards.
@@ -185,7 +183,7 @@ Telegram
 - [x] Operational health checks.
 - [x] Backup/recovery procedure.
 
-**Exit gate:** COMPLETE. The repository contains scheduled bounded acquisition, durable operational state, immutable R2 evidence policy, Worker resource bindings and health checks, secret management, failure/retry behavior and recovery procedure without a paid dependency.
+**Exit gate:** COMPLETE. The repository contains scheduled bounded acquisition, durable operational state, immutable D1 evidence storage, Worker D1 bindings and health checks, secret management, failure/retry behavior and recovery procedure without a billing-gated object-storage dependency.
 
 ## Phase 7 — Verification assistant
 

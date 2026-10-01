@@ -44,7 +44,7 @@ This file records decisions that should not be casually reversed during implemen
 
 **Reason:** Privacy and access boundaries. Voluntary forwarded submissions may later be used as discovery signals.
 
-## D008 — D1/R2 + GitHub Actions target
+## D008 — D1 + GitHub Actions zero-cost target
 
 **Decision:** Heavy scheduled acquisition/parsing is targeted for GitHub Actions; live state is targeted for Cloudflare D1; raw evidence may be retained in R2; a Worker handles lightweight webhook/API traffic.
 
