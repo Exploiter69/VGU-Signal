@@ -14,7 +14,7 @@ import {
   upsertUser,
 } from "./queries";
 import {downloadFile, getFile, sendMessage} from "./telegram";
-import type {TelegramUpdate} from "./telegram";
+import type {TelegramMessage, TelegramUpdate} from "./telegram";
 
 export interface Env {
   DB: D1Database;
