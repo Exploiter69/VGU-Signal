@@ -26,7 +26,7 @@ import {
   setSession,
   upsertUser,
 } from "./queries";
-import {downloadFile, getFile, getWebhookInfo, sendMessage, setWebhook} from "./telegram";
+import {downloadFile, getFile, sendMessage} from "./telegram";
 import type {TelegramMessage, TelegramUpdate} from "./telegram";
 
 export interface Env {
@@ -617,26 +617,12 @@ async function handleVerificationMedia(
 
 async function handleUpdate(env: Env, update: TelegramUpdate, origin: string): Promise<void> {
   const message = update.message;
-  console.log(JSON.stringify({
-    event: "telegram_update",
-    updateId: update.update_id,
-    hasMessage: Boolean(message),
-    hasFrom: Boolean(message?.from),
-    chatType: message?.chat?.type ?? null,
-    messageId: message?.message_id ?? null,
-    command: message?.text?.trim().split(/\\s+/)[0]?.toLowerCase() ?? null,
-  }));
-  if (!message?.from) {
-    console.log(JSON.stringify({event: "telegram_drop", reason: "missing_message_or_from", updateId: update.update_id}));
-    return;
-  }
+  if (!message?.from) return;
   if (!privateChat(update)) {
     await sendMessage(env.TELEGRAM_BOT_TOKEN, message.chat.id, "Please use VGU Signal in a private chat.");
     return;
   }
-  console.log(JSON.stringify({event: "telegram_private_chat", updateId: update.update_id, userId: message.from.id, chatId: message.chat.id}));
   const user = await upsertUser(env.DB, message.from.id);
-  console.log(JSON.stringify({event: "telegram_user_upserted", updateId: update.update_id, userId: user.id}));
   const text = (message.text ?? "").trim();
   if (message.document || message.photo) {
     await handleVerificationMedia(env, user.id, message.chat.id, message);
@@ -654,9 +640,7 @@ async function handleUpdate(env: Env, update: TelegramUpdate, origin: string): P
   if (text.toLowerCase() === "/cancel") {
     if (await handleOnboarding(env, user.id, message.chat.id, text, env.TELEGRAM_BOT_TOKEN)) return;
   }
-  console.log(JSON.stringify({event: "telegram_command_dispatch", updateId: update.update_id, command: text.toLowerCase().split(/\\s+/)[0] ?? ""}));
   await handleCommand(env, user.id, message.chat.id, text, env.TELEGRAM_BOT_TOKEN, origin);
-  console.log(JSON.stringify({event: "telegram_command_complete", updateId: update.update_id}));
 }
 
 interface NotificationUser {
@@ -771,24 +755,6 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method === "GET") {
       const requestUrl = new URL(request.url);
-      if (requestUrl.pathname === "/__telegram-status") {
-        const info = await getWebhookInfo(env.TELEGRAM_BOT_TOKEN);
-        return Response.json({ok: true, webhook: {
-          url: info.url,
-          pending_update_count: info.pending_update_count,
-          last_error_date: info.last_error_date ?? null,
-          last_error_message: info.last_error_message ?? null,
-          ip_address: info.ip_address ?? null,
-        }});
-      }
-      if (requestUrl.pathname === "/__telegram-repair") {
-        await setWebhook(
-          env.TELEGRAM_BOT_TOKEN,
-          new URL("/", request.url).toString(),
-          env.TELEGRAM_WEBHOOK_SECRET,
-        );
-        return Response.json({ok: true, webhook: new URL("/", request.url).toString()});
-      }
       if (requestUrl.pathname === "/calendar.ics") {
         const rawToken = requestUrl.searchParams.get("token");
         if (!rawToken) return new Response("Missing token", {status: 400});
@@ -822,12 +788,9 @@ export default {
     }
     try {
       const update = (await request.json()) as TelegramUpdate;
-      console.log(JSON.stringify({event: "telegram_webhook_received", updateId: update.update_id}));
       await handleUpdate(env, update, new URL(request.url).origin);
-      console.log(JSON.stringify({event: "telegram_webhook_complete", updateId: update.update_id}));
       return new Response("ok");
-    } catch (error) {
-      console.error(JSON.stringify({event: "telegram_webhook_error", error: error instanceof Error ? error.message : String(error)}));
+    } catch {
       return new Response("Bad request", {status: 500});
     }
   },
