@@ -637,7 +637,9 @@ async function handleUpdate(env: Env, update: TelegramUpdate, origin: string): P
     await sendMessage(env.TELEGRAM_BOT_TOKEN, message.chat.id, "Use /help to see available commands.");
     return;
   }
-  if (await handleOnboarding(env, user.id, message.chat.id, text, env.TELEGRAM_BOT_TOKEN)) return;
+  if (text.toLowerCase() === "/cancel") {
+    if (await handleOnboarding(env, user.id, message.chat.id, text, env.TELEGRAM_BOT_TOKEN)) return;
+  }
   await handleCommand(env, user.id, message.chat.id, text, env.TELEGRAM_BOT_TOKEN, origin);
 }
 
