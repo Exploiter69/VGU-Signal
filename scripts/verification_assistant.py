@@ -151,8 +151,10 @@ def build_sql(
 
 
 def run(input_path: Path, archive_path: Path, out_path: Path, now: str) -> int:
-    submissions = json.loads(input_path.read_text(encoding="utf-8"))
-    archive = json.loads(archive_path.read_text(encoding="utf-8"))
+    submissions_payload = json.loads(input_path.read_text(encoding="utf-8"))
+    archive_payload = json.loads(archive_path.read_text(encoding="utf-8"))
+    submissions = submissions_payload["submissions"]
+    archive = archive_payload.get("archive", archive_payload)
     candidates = [Candidate(**row) for row in archive["items"]]
     conflict_ids = {row["item_id"] for row in archive.get("conflicts", [])}
 
