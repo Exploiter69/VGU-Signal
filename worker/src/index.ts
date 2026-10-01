@@ -504,6 +504,25 @@ async function storeVerificationText(
     : strong.length
       ? "Official verified information matches this submission."
       : "No sufficiently strong official match was found. This does not prove the submission false.";
+  let aiNote = "";
+  if (aiEnabled(env) && strong.length) {
+    try {
+      const evidence = strong.slice(0, 5).map((match) => ({
+        id: match.item.id, title: match.item.title, summary: match.item.summary,
+        category: match.item.category, sourceUrl: match.item.primary_source_url,
+        dueAt: match.item.due_at, startsAt: match.item.starts_at,
+      }));
+      const result = await groundedAnswer(
+        env,
+        "Compare this community submission with the supplied official candidates. Explain similarities or differences only; do not declare the submission authoritative: " + text.slice(0, 6000),
+        evidence,
+      );
+      aiNote = "\n\n<b>AI-assisted comparison</b>\n" + result.answer +
+        "\nSources: " + result.citations.map((id) => evidence.find((item) => item.id === id)?.sourceUrl ?? "").filter(Boolean).join(", ");
+    } catch {
+      aiNote = "";
+    }
+  }
   await env.DB.prepare(
     `INSERT OR IGNORE INTO verification_submissions
      (id,user_id,telegram_chat_id,telegram_message_id,intake_kind,submitted_text,status,result_summary,created_at,processed_at)
@@ -536,7 +555,7 @@ async function storeVerificationText(
   } else if (strong.length) {
     await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId,
       "<b>Official evidence match</b>\n\n" +
-      strong.slice(0, 3).map((match, index) => formatInfo(match.item, index + 1)).join("\n\n"));
+      strong.slice(0, 3).map((match, index) => formatInfo(match.item, index + 1)).join("\n\n") + aiNote);
   } else {
     await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId,
       "<b>Not officially confirmed.</b>\n\nNo sufficiently strong matching official VGU information was found in the current archive. This does not prove the submission false.");
