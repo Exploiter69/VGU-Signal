@@ -150,13 +150,13 @@ Never commit:
 - session cookies;
 - private ERP access material.
 
-The deterministic MVP requires no paid AI credential and should not require any AI credential at all.
+The deterministic core requires no AI credential. Phase 9 optionally accepts a remote free-tier AI credential; no local LLM and no paid provider are required.
 
 ## 9. AI boundary
 
 AI is optional and out of the critical path for the first implementation vertical slice.
 
-Future AI adapters may provide:
+Phase 9 AI adapters provide:
 
 - summaries;
 - difficult document interpretation;
@@ -164,7 +164,7 @@ Future AI adapters may provide:
 - natural-language queries;
 - community-submission matching.
 
-AI output must reference verified evidence and can never directly change authoritative state.
+AI output must reference verified evidence and can never directly change authoritative state. Remote provider failure falls back to deterministic retrieval.
 
 ## 10. Quality tooling
 
