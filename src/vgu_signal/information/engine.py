@@ -5,8 +5,6 @@ from collections.abc import Iterable
 from datetime import datetime, timedelta
 from hashlib import sha256
 
-from vgu_signal.verification.engine import publishable
-from vgu_signal.verification.models import EvidenceClaim
 from vgu_signal.information.models import (
     Importance,
     InformationCategory,
@@ -182,9 +180,7 @@ def search_archive(
         if at is not None and not include_expired and not item.is_effective_at(at):
             continue
         if query_tokens:
-            haystack = set(
-                _TOKEN_RE.findall(f"{item.title} {item.summary}".casefold())
-            )
+            haystack = set(_TOKEN_RE.findall(f"{item.title} {item.summary}".casefold()))
             if not query_tokens.issubset(haystack):
                 continue
         candidates.append(item)
@@ -195,6 +191,16 @@ def search_archive(
                 item.due_at is None,
                 item.due_at or item.starts_at or item.effective_from or datetime.max,
                 -list(Importance).index(item.importance),
+                item.id,
+            )
+        )
+    elif query_tokens:
+        candidates.sort(
+            key=lambda item: (
+                -_search_score(item, query_tokens)[0],
+                -_search_score(item, query_tokens)[1],
+                -list(Importance).index(item.importance),
+                -(item.published_at or datetime.min).timestamp(),
                 item.id,
             )
         )
