@@ -24,17 +24,78 @@ from vgu_signal.extraction.models import (
     QualityLevel,
 )
 
+_BOILERPLATE_TAGS = {"aside", "footer", "nav"}
+_BOILERPLATE_MARKERS = (
+    "breadcrumb",
+    "cookie",
+    "consent",
+    "footer",
+    "header",
+    "menu",
+    "modal",
+    "navigation",
+    "popup",
+    "sidebar",
+    "social",
+    "subscribe",
+)
+
+
+def _remove_boilerplate(soup: BeautifulSoup) -> None:
+    for element in soup(["script", "style", "noscript", "template"]):
+        element.decompose()
+
+    for element in soup.find_all(_BOILERPLATE_TAGS):
+        element.decompose()
+
+    for element in soup.find_all(True):
+        if element.get("aria-hidden") == "true":
+            element.decompose()
+            continue
+        marker = " ".join(
+            str(value).casefold()
+            for attribute in ("id", "class", "role")
+            for value in (
+                element.get(attribute, [])
+                if isinstance(element.get(attribute, []), list)
+                else [element.get(attribute, "")]
+            )
+        )
+        if any(term in marker for term in _BOILERPLATE_MARKERS):
+            element.decompose()
+
+
+def _content_root(soup: BeautifulSoup):
+    main = soup.find("main")
+    if main is not None:
+        return main
+    article = soup.find("article")
+    if article is not None:
+        return article
+    return soup.body or soup
+
+
+def _document_title(soup: BeautifulSoup, root) -> str:
+    heading = root.find(["h1", "h2"])
+    if heading:
+        value = heading.get_text(" ", strip=True)
+        if value:
+            return value
+    if soup.title:
+        value = soup.title.get_text(" ", strip=True)
+        if value:
+            return value
+    return "Untitled VGU document"
+
 
 def extract_document(
     *, evidence_id: str, source_id: str, url: str, body: bytes
 ) -> ExtractedDocument:
     soup = BeautifulSoup(body, "html.parser")
-    for element in soup(["script", "style", "noscript", "template"]):
-        element.decompose()
+    _remove_boilerplate(soup)
 
-    raw_title = soup.title.get_text(" ", strip=True) if soup.title else ""
-    title = raw_title or "Untitled VGU document"
-    main = soup.find("main") or soup.body or soup
+    main = _content_root(soup)
+    title = _document_title(soup, main)
     text = normalize_text("\n".join(main.stripped_strings))
 
     links: list[HttpUrl] = []
