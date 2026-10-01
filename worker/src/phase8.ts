@@ -154,3 +154,8 @@ export function utcWeekRange(now: Date): {start: string; end: string} {
 export function dayLabel(value: string): string {
   return isoDay(new Date(value));
 }
+
+export async function sha256Hex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", calendarTokenHashInput(value));
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
