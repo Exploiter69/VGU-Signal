@@ -439,6 +439,27 @@ export async function getCalendarItems(
   return result.results;
 }
 
+export async function getCalendarFeedItems(
+  db: D1Database,
+  preferences: PreferenceRow,
+  now: Date,
+  days = 90,
+  limit = 100,
+): Promise<InfoRow[]> {
+  const {sql: scopeSql, params: scopeParams} = scopeConditions(preferences);
+  const end = new Date(now.getTime() + days * 86400000).toISOString();
+  const result = await db.prepare(
+    infoQuery() + `${scopeSql}
+      AND i.category IN ('DEADLINE','EXAM','REGISTRATION','EVENT','HOLIDAY','CALENDAR')
+      AND (i.due_at IS NOT NULL OR i.starts_at IS NOT NULL)
+      AND COALESCE(i.starts_at, i.due_at) >= ?
+      AND COALESCE(i.starts_at, i.due_at) < ?
+      ORDER BY COALESCE(i.starts_at, i.due_at) ASC, i.id ASC
+      LIMIT ?`,
+  ).bind(now.toISOString(), now.toISOString(), ...scopeParams, now.toISOString(), end, limit).all<InfoRow>();
+  return result.results;
+}
+
 export async function getImportantDocuments(
   db: D1Database,
   preferences: PreferenceRow,
