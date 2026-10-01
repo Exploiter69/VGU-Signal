@@ -61,7 +61,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           python - <<'PY'
-          import hashlib, json, pathlib, subprocess
+          import hashlib, json, os, pathlib, subprocess
           p = pathlib.Path("artifacts/production/manifest.json")
           data = p.read_bytes()
           m = json.loads(data)
@@ -69,7 +69,7 @@ jobs:
           status = m["status"]
           cmd = [
               "npx", "wrangler", "d1", "execute", "vgu-signal", "--remote",
-              "--api-token", "${CLOUDFLARE_API_TOKEN}", "--account-id", "${CLOUDFLARE_ACCOUNT_ID}",
+              "--api-token", os.environ["CLOUDFLARE_API_TOKEN"], "--account-id", os.environ["CLOUDFLARE_ACCOUNT_ID"],
               "--command",
               "INSERT OR REPLACE INTO pipeline_runs(id,started_at,finished_at,status,source_count,fetched_count,changed_count,failed_count,error_summary) "
               f"VALUES('github:{m['started_at']}','{m['started_at']}','{m['finished_at']}','{status}',"
