@@ -66,10 +66,12 @@ export async function telegramRequest<T>(
     headers: {"content-type": "application/json"},
     body: JSON.stringify(payload),
   });
-  if (!response.ok) {
-    throw new Error(`Telegram HTTP error: ${response.status}`);
-  }
   const result = (await response.json()) as TelegramResponse<T>;
+  if (!response.ok) {
+    throw new Error(
+      `Telegram HTTP error: ${response.status}: ${result.description ?? "unknown error"}`,
+    );
+  }
   if (!result.ok || result.result === undefined) {
     throw new Error(result.description ?? "Telegram API request failed");
   }
