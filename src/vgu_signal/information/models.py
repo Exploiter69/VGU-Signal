@@ -53,8 +53,7 @@ class StudentScope(BaseModel):
 
     def specificity(self) -> int:
         return sum(
-            value is not None
-            for value in (self.program, self.branch, self.year, self.semester)
+            value is not None for value in (self.program, self.branch, self.year, self.semester)
         )
 
 
