@@ -153,3 +153,89 @@ The core invariant is:
 ## Phase 4 and later
 
 Phase 4 begins from verified Phase 3 claims and provides the stable student-information model without reimplementing evidence, verification, deduplication or history logic. Phases 4–10 otherwise remain governed by `ROADMAP.md`.
+## Phase 4 — Student information model
+
+**Status: COMPLETE.** See `docs/PHASE4_STUDENT_INFORMATION.md` for the detailed contract.
+
+### Objective
+
+Project verified Phase 3 claims into one stable information representation that is independent of Telegram, Worker/API or any future delivery client.
+
+### Step 1 — Stable category taxonomy
+
+Implement explicit categories for:
+
+- DEADLINE
+- EXAM
+- FEES
+- REGISTRATION
+- NOTICE
+- EVENT
+- HOLIDAY
+- CALENDAR
+
+Map existing Phase 2 notice categories deterministically into the stable taxonomy.
+
+### Step 2 — Student applicability dimensions
+
+Implement optional program, branch, year and semester dimensions. Scope matching treats missing dimensions as broader applicability while incompatible known dimensions do not match.
+
+Applicability never overrides the Phase 3 trust boundary.
+
+### Step 3 — Importance and urgency
+
+Keep relevance separate from truth:
+
+- Importance: LOW / NORMAL / HIGH / CRITICAL.
+- Urgency: NONE / UPCOMING / SOON / IMMEDIATE / OVERDUE.
+
+Derive them deterministically from time proximity, category, explicit urgency wording, changed/superseding state and scope specificity.
+
+### Step 4 — Temporal model
+
+Preserve published_at, effective_from, effective_until, due_at, starts_at and ends_at. Effective windows are deterministic and half-open.
+
+### Step 5 — Source links
+
+Retain a primary authoritative source URL plus additional source links. The Phase 3 evidence/provenance chain remains the audit authority.
+
+### Step 6 — Change and supersession
+
+Represent CHANGED, SUPERSEDES and CORRECTS relationships without overwriting prior information.
+
+### Step 7 — Searchable archive
+
+Provide a delivery-neutral archive with deterministic free-text, category, scope and effective-time filtering, including an explicit option to include expired records.
+
+### Step 8 — Verified-claim boundary
+
+Information items are built through a verified-claim path that rejects claims unless Phase 3 publication requirements are satisfied.
+
+### Step 9 — Durable schema
+
+Migration `0004_information_model.sql` adds information items, student dimensions, priority/temporal fields, source links and historical relationships with lookup indexes.
+
+### Step 10 — Regression strategy
+
+Tests cover the complete Phase 4 contract: all categories, category mapping, scope matching, importance/urgency separation, changed-item priority, temporal fields, source links, historical relationships, duplicate IDs, search filtering/expiry, deterministic ordering, stable IDs and rejection of unverified claims.
+
+### Phase 4 exit gate
+
+Phase 4 is closed only when one verified revision demonstrates:
+
+- [x] All roadmap categories are explicit.
+- [x] Program/branch/year/semester dimensions are represented and queryable.
+- [x] Importance and urgency are separate deterministic signals.
+- [x] Published/effective/expiry and deadline/event timestamps are preserved.
+- [x] Primary and additional source links are preserved.
+- [x] Change/supersession/correction relationships are explicit.
+- [x] The archive is searchable without delivery-specific logic.
+- [x] Unverified claims cannot enter the information layer through the verified path.
+- [x] Durable information schema and indexes are added.
+- [x] Full Ruff format/lint, mypy and pytest pass.
+- [x] Worker typecheck remains green.
+- [x] Roadmap, status, data model and Phase 4 contract are synchronized.
+
+The core invariant is:
+
+> One verified fact becomes one delivery-neutral information item; clients render it rather than recreating its business rules.
