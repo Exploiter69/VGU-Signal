@@ -39,7 +39,7 @@ This roadmap is the execution plan for VGU Signal. The order is deliberate: **tr
 - [x] Final pytest suite passed.
 - [x] Final Worker typecheck passed.
 
-**Concrete stack:** Python 3.12+, `httpx`, BeautifulSoup, PyMuPDF, pdfplumber, Pydantic where useful, pytest, Ruff and mypy; TypeScript Cloudflare Worker for the delivery boundary; D1/R2 for production state/evidence; GitHub Actions for scheduled acquisition.
+**Concrete stack:** Python 3.12+, `httpx`, BeautifulSoup, PyMuPDF, pdfplumber, Pydantic where useful, pytest, Ruff and mypy; TypeScript Cloudflare Worker for the delivery boundary; D1 for production state/evidence; GitHub Actions for scheduled acquisition.
 
 **Execution plan:** see `docs/IMPLEMENTATION_PLAN.md`, `docs/TECH_STACK.md` and `docs/QUALITY_GATES.md`.
 
