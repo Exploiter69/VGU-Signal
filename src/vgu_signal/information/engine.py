@@ -12,6 +12,8 @@ from vgu_signal.information.models import (
     StudentScope,
     Urgency,
 )
+from vgu_signal.verification.engine import publishable
+from vgu_signal.verification.models import EvidenceClaim
 
 _TOKEN_RE = re.compile(r"[a-z0-9]+")
 
