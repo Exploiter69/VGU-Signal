@@ -86,17 +86,53 @@ export function escapeHtml(value: string): string {
     .replaceAll('"', "&quot;");
 }
 
+const TELEGRAM_MESSAGE_LIMIT = 4096;
+
+function splitTelegramMessage(text: string): string[] {
+  if (text.length <= TELEGRAM_MESSAGE_LIMIT) return [text];
+
+  const paragraphs = text.split("\n\n");
+  const chunks: string[] = [];
+  let current = "";
+
+  for (const paragraph of paragraphs) {
+    if (paragraph.length > TELEGRAM_MESSAGE_LIMIT) {
+      if (current) {
+        chunks.push(current);
+        current = "";
+      }
+      for (let offset = 0; offset < paragraph.length; offset += TELEGRAM_MESSAGE_LIMIT) {
+        chunks.push(paragraph.slice(offset, offset + TELEGRAM_MESSAGE_LIMIT));
+      }
+      continue;
+    }
+
+    const candidate = current ? `${current}\n\n${paragraph}` : paragraph;
+    if (candidate.length <= TELEGRAM_MESSAGE_LIMIT) {
+      current = candidate;
+    } else {
+      chunks.push(current);
+      current = paragraph;
+    }
+  }
+
+  if (current) chunks.push(current);
+  return chunks;
+}
+
 export async function sendMessage(
   token: string,
   chatId: number,
   text: string,
 ): Promise<void> {
-  await telegramRequest(token, "sendMessage", {
-    chat_id: chatId,
-    text,
-    parse_mode: "HTML",
-    disable_web_page_preview: true,
-  });
+  for (const chunk of splitTelegramMessage(text)) {
+    await telegramRequest(token, "sendMessage", {
+      chat_id: chatId,
+      text: chunk,
+      parse_mode: "HTML",
+      disable_web_page_preview: true,
+    });
+  }
 }
 
 export async function getWebhookInfo(token: string): Promise<{
@@ -122,7 +158,6 @@ export async function setWebhook(
     drop_pending_updates: false,
   });
 }
-
 
 export async function getFile(token: string, fileId: string): Promise<TelegramFile> {
   return telegramRequest<TelegramFile>(token, "getFile", {file_id: fileId});
