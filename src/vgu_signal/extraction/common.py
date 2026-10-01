@@ -12,7 +12,7 @@ from vgu_signal.extraction.models import (
     NoticeCategory,
 )
 
-PARSER_VERSION: Final[str] = "deterministic-v1"
+PARSER_VERSION: Final[str] = "deterministic-v2"
 
 _MONTHS: Final[dict[str, int]] = {
     "january": 1,
