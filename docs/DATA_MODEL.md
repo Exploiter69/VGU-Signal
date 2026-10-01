@@ -249,3 +249,57 @@ Notifications
 ## Design rule
 
 The database is not the source of truth by itself. For authoritative university facts, the exact source evidence, evidence hash and provenance chain remain the foundation. Verification state controls publication; history is never overwritten.
+
+## Telegram user and preferences
+
+Migration 0005_telegram_mvp.sql adds:
+
+~~~
+User
+- id
+- telegram_user_id
+- created_at
+- updated_at
+- status
+
+UserPreference
+- user_id
+- program
+- branch
+- year
+- semester
+- categories_json
+- digest_enabled
+- reminders_enabled
+- muted
+- quiet_start
+- quiet_end
+
+TelegramSession
+- user_id
+- flow
+- step
+- updated_at
+~~~
+
+Preferences are user-declared relevance filters. They do not prove that an official notice applies.
+
+## Notification
+
+~~~
+Notification
+- id
+- user_id
+- information_item_id
+- notification_type
+- scheduled_key
+- created_at
+- delivered_at
+- delivery_status
+~~~
+
+The unique user/item/type/scheduled-key identity provides durable notification deduplication.
+
+## Phase 5 query boundary
+
+Telegram reads current VERIFIED claims joined to InformationItem records. Items already replaced through a CHANGED, SUPERSEDES or CORRECTS relationship are excluded from current delivery queries. Historical rows remain durable.
