@@ -337,3 +337,43 @@ BackupManifest
 ```
 
 Operational state supplements, but does not replace, the evidence/provenance model.
+
+
+## Phase 7 verification assistant
+
+~~~text
+VerificationSubmission
+- id
+- user_id
+- telegram_chat_id
+- telegram_message_id
+- intake_kind
+- content_type
+- file_name
+- object_key
+- submitted_text
+- extracted_text
+- extraction_kind
+- status
+- result_summary
+- created_at
+- processed_at
+- response_sent_at
+
+VerificationMatch
+- submission_id
+- information_item_id
+- score
+- match_reason
+- matched_at
+
+ModeratorReviewQueue
+- id
+- submission_id
+- reason
+- status
+- created_at
+- resolved_at
+~~~
+
+Verification submissions are user-provided material and never become authoritative evidence. Only existing verified InformationItem records can support a verification match. A missing match remains UNVERIFIED.
