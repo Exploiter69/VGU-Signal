@@ -343,3 +343,181 @@ export async function findVerificationMatches(
   }
   return {matches: scored, conflictItemIds};
 }
+
+
+export interface ChangeRow extends InfoRow {
+  change_kind: string;
+  old_title: string | null;
+}
+
+export async function searchNaturalInformation(
+  db: D1Database,
+  preferences: PreferenceRow,
+  now: Date,
+  intent: {textQuery: string; category?: string; start?: string; end?: string; sort: "relevance" | "time"},
+  limit = 10,
+): Promise<InfoRow[]> {
+  const {sql: scopedSql, params: scopedParams} = scopeConditions(preferences);
+  const categories = parseCategories(preferences.categories_json);
+  const categorySql = intent.category
+    ? " AND i.category = ?"
+    : categories.length
+      ? ` AND i.category IN (${categories.map(() => "?").join(",")})`
+      : "";
+  const categoryParams = intent.category ? [intent.category] : categories;
+  const textTokens = intent.textQuery.toLowerCase().split(/\s+/).filter(Boolean);
+  const textSql = textTokens.length
+    ? ` AND ${textTokens.map(() => "(LOWER(i.title) LIKE ? OR LOWER(i.summary) LIKE ? OR LOWER(c.statement) LIKE ?)").join(" AND ")}`
+    : "";
+  const textParams = textTokens.flatMap((token) => {
+    const value = `%${token}%`;
+    return [value, value, value];
+  });
+  const timeSql = intent.start && intent.end
+    ? " AND COALESCE(i.due_at, i.starts_at, i.effective_from, i.published_at) >= ? AND COALESCE(i.due_at, i.starts_at, i.effective_from, i.published_at) < ?"
+    : "";
+  const timeParams = intent.start && intent.end ? [intent.start, intent.end] : [];
+  const order = intent.sort === "time"
+    ? "COALESCE(i.due_at, i.starts_at, i.effective_from, i.published_at) ASC, i.id ASC"
+    : "i.importance DESC, COALESCE(i.published_at, i.created_at) DESC, i.id ASC";
+  const result = await db.prepare(
+    infoQuery() + scopedSql + categorySql + textSql + timeSql + ` ORDER BY ${order} LIMIT ?`,
+  ).bind(
+    now.toISOString(), now.toISOString(), ...scopedParams, ...categoryParams,
+    ...textParams, ...timeParams, limit,
+  ).all<InfoRow>();
+  return result.results;
+}
+
+export async function getChangedTimeline(
+  db: D1Database,
+  preferences: PreferenceRow,
+  now: Date,
+  days = 30,
+  limit = 10,
+): Promise<ChangeRow[]> {
+  const {sql: scopeSql, params: scopeParams} = scopeConditions(preferences);
+  const end = now.toISOString();
+  const start = new Date(now.getTime() - days * 86400000).toISOString();
+  const result = await db.prepare(
+    `SELECT i.*, c.state AS claim_state, r.kind AS change_kind, old.title AS old_title
+     FROM information_relationships r
+     JOIN information_items i ON i.id = r.new_item_id
+     JOIN claims c ON c.id = i.claim_id
+     LEFT JOIN information_items old ON old.id = r.old_item_id
+     WHERE r.kind IN ('CHANGED','SUPERSEDES','CORRECTS')
+       AND c.state = 'VERIFIED'
+       AND r.created_at >= ? AND r.created_at <= ?
+       AND (i.effective_from IS NULL OR i.effective_from <= ?)
+       AND (i.effective_until IS NULL OR i.effective_until > ?)
+       ${scopeSql}
+     ORDER BY r.created_at DESC, i.id ASC
+     LIMIT ?`,
+  ).bind(start, end, end, end, ...scopeParams, limit).all<ChangeRow>();
+  return result.results;
+}
+
+export async function getCalendarItems(
+  db: D1Database,
+  preferences: PreferenceRow,
+  now: Date,
+  days = 7,
+  limit = 20,
+): Promise<InfoRow[]> {
+  const {sql: scopeSql, params: scopeParams} = scopeConditions(preferences);
+  const categories = ["EVENT", "HOLIDAY", "CALENDAR"];
+  const end = new Date(now.getTime() + days * 86400000).toISOString();
+  const result = await db.prepare(
+    infoQuery() + `${scopeSql}
+      AND i.category IN ('EVENT','HOLIDAY','CALENDAR')
+      AND (i.due_at IS NOT NULL OR i.starts_at IS NOT NULL)
+      AND COALESCE(i.starts_at, i.due_at) >= ?
+      AND COALESCE(i.starts_at, i.due_at) < ?
+      ORDER BY COALESCE(i.starts_at, i.due_at) ASC, i.id ASC
+      LIMIT ?`,
+  ).bind(now.toISOString(), now.toISOString(), ...scopeParams, now.toISOString(), end, limit).all<InfoRow>();
+  return result.results;
+}
+
+export async function getImportantDocuments(
+  db: D1Database,
+  preferences: PreferenceRow,
+  now: Date,
+  limit = 8,
+): Promise<InfoRow[]> {
+  const {sql: scopeSql, params: scopeParams} = scopeConditions(preferences);
+  const result = await db.prepare(
+    infoQuery() + `${scopeSql}
+      AND i.category IN ('NOTICE','CALENDAR')
+      AND i.importance IN ('HIGH','CRITICAL')
+      ORDER BY i.importance DESC, COALESCE(i.published_at, i.created_at) DESC, i.id ASC
+      LIMIT ?`,
+  ).bind(now.toISOString(), now.toISOString(), ...scopeParams, limit).all<InfoRow>();
+  return result.results;
+}
+
+export async function getDeadlineConflicts(
+  db: D1Database,
+  preferences: PreferenceRow,
+  now: Date,
+  days = 14,
+  windowHours = 24,
+  limit = 30,
+): Promise<InfoRow[]> {
+  const {sql: scopeSql, params: scopeParams} = scopeConditions(preferences);
+  const categories = parseCategories(preferences.categories_json);
+  const categorySql = categories.length ? ` AND i.category IN (${categories.map(() => "?").join(",")})` : "";
+  const end = new Date(now.getTime() + days * 86400000).toISOString();
+  const result = await db.prepare(
+    infoQuery() + `${scopeSql}${categorySql}
+      AND i.due_at IS NOT NULL
+      AND i.due_at >= ? AND i.due_at < ?
+      AND EXISTS (
+        SELECT 1 FROM information_items other
+        JOIN claims other_claim ON other_claim.id = other.claim_id
+        WHERE other.id <> i.id
+          AND other_claim.state = 'VERIFIED'
+          AND other.due_at IS NOT NULL
+          AND other.due_at >= ?
+          AND other.due_at < ?
+          AND ABS(strftime('%s', other.due_at) - strftime('%s', i.due_at)) <= ?
+          AND (other.effective_from IS NULL OR other.effective_from <= ?)
+          AND (other.effective_until IS NULL OR other.effective_until > ?)
+      )
+      ORDER BY i.due_at ASC, i.id ASC
+      LIMIT ?`,
+  ).bind(
+    now.toISOString(), now.toISOString(), ...scopeParams, ...categories,
+    now.toISOString(), end, now.toISOString(), end, windowHours * 3600,
+    now.toISOString(), now.toISOString(), limit,
+  ).all<InfoRow>();
+  return result.results;
+}
+
+export async function createCalendarToken(
+  db: D1Database,
+  userId: string,
+  tokenHash: string,
+  expiresAt: string,
+): Promise<void> {
+  await db.prepare(
+    `INSERT INTO calendar_export_tokens(token_hash,user_id,created_at,expires_at)
+     VALUES (?, ?, ?, ?)`,
+  ).bind(tokenHash, userId, new Date().toISOString(), expiresAt).run();
+}
+
+export async function getCalendarTokenUser(
+  db: D1Database,
+  tokenHash: string,
+  now: Date,
+): Promise<string | null> {
+  const row = await db.prepare(
+    `SELECT user_id FROM calendar_export_tokens
+     WHERE token_hash = ? AND expires_at > ?`,
+  ).bind(tokenHash, now.toISOString()).first<{user_id: string}>();
+  if (!row) return null;
+  await db.prepare(
+    "UPDATE calendar_export_tokens SET last_used_at = ? WHERE token_hash = ?",
+  ).bind(now.toISOString(), tokenHash).run();
+  return row.user_id;
+}
