@@ -173,28 +173,47 @@ def run(root: Path) -> int:
                 "INSERT OR REPLACE INTO information_items(id,claim_id,title,summary,category,program,branch,year,"
                 "semester,importance,urgency,published_at,effective_from,effective_until,due_at,starts_at,ends_at,"
                 "primary_source_url,created_at,updated_at) VALUES("
-                + ",".join([
-                    sql(item.id), sql(item.claim_id), sql(item.title), sql(item.summary), sql(item.category.value),
-                    sql(item.audience.program), sql(item.audience.branch), sql(item.audience.year),
-                    sql(item.audience.semester), sql(item.importance.value), sql(item.urgency.value),
-                    sql(iso(item.published_at)), sql(iso(item.effective_from)), sql(iso(item.effective_until)),
-                    sql(iso(item.due_at)), sql(iso(item.starts_at)), sql(iso(item.ends_at)),
-                    sql(str(item.primary_source_url)), sql(iso(now)), sql(iso(now)),
-                ]) + ");"
+                + ",".join(
+                    [
+                        sql(item.id),
+                        sql(item.claim_id),
+                        sql(item.title),
+                        sql(item.summary),
+                        sql(item.category.value),
+                        sql(item.audience.program),
+                        sql(item.audience.branch),
+                        sql(item.audience.year),
+                        sql(item.audience.semester),
+                        sql(item.importance.value),
+                        sql(item.urgency.value),
+                        sql(iso(item.published_at)),
+                        sql(iso(item.effective_from)),
+                        sql(iso(item.effective_until)),
+                        sql(iso(item.due_at)),
+                        sql(iso(item.starts_at)),
+                        sql(iso(item.ends_at)),
+                        sql(str(item.primary_source_url)),
+                        sql(iso(now)),
+                        sql(iso(now)),
+                    ]
+                )
+                + ");"
             )
             statements.append(
                 "INSERT OR REPLACE INTO information_source_links(item_id,source_url,is_primary) "
                 f"VALUES({sql(item.id)},{sql(str(item.primary_source_url))},1);"
             )
 
-        manifest.append({
-            "source_id": source.id,
-            "status": result.status.value,
-            "evidence_id": evidence.id,
-            "raw_content_hash": evidence.raw_content_hash,
-            "r2_object": object_key,
-            "fetched_at": iso(evidence.fetched_at),
-        })
+        manifest.append(
+            {
+                "source_id": source.id,
+                "status": result.status.value,
+                "evidence_id": evidence.id,
+                "raw_content_hash": evidence.raw_content_hash,
+                "r2_object": object_key,
+                "fetched_at": iso(evidence.fetched_at),
+            }
+        )
 
     write_sql(statements, root)
     status = "FAILED" if failed == len(enabled) else "PARTIAL" if failed else "SUCCEEDED"
