@@ -26,7 +26,7 @@ import {
   setSession,
   upsertUser,
 } from "./queries";
-import {downloadFile, getFile, sendMessage, setWebhook} from "./telegram";
+import {downloadFile, getFile, getWebhookInfo, sendMessage, setWebhook} from "./telegram";
 import type {TelegramMessage, TelegramUpdate} from "./telegram";
 
 export interface Env {
@@ -771,7 +771,7 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method === "GET") {
       const requestUrl = new URL(request.url);
-      if (requestUrl.pathname === "/__telegram-repair") {
+      if (requestUrl.pathname === "/__telegram-status") {\n        const info = await getWebhookInfo(env.TELEGRAM_BOT_TOKEN);\n        return Response.json({ok: true, webhook: {url: info.url, pending_update_count: info.pending_update_count, last_error_date: info.last_error_date ?? null, last_error_message: info.last_error_message ?? null, ip_address: info.ip_address ?? null}});\n      }\n      if (requestUrl.pathname === "/__telegram-repair") {
         await setWebhook(
           env.TELEGRAM_BOT_TOKEN,
           new URL("/", request.url).toString(),
