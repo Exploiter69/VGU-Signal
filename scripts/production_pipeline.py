@@ -133,7 +133,7 @@ def run(root: Path) -> int:
                     iso(now),
                     iso(now),
                 ),
-            ).replace("INSERT OR REPLACE", "INSERT")
+            ).replace(";", "")
             + " ON CONFLICT(id) DO UPDATE SET name=excluded.name,"
             "url=excluded.url,source_class=excluded.source_class,"
             "enabled=excluded.enabled,updated_at=excluded.updated_at;"
@@ -174,7 +174,7 @@ def run(root: Path) -> int:
             url=str(source.url),
             content_type=evidence.content_type,
             body=body,
-        ).model_copy(update={"body_text": ""})
+        )
         document = document.model_copy(
             update={"body_text": document.body_text[:MAX_DOCUMENT_TEXT]}
         )
