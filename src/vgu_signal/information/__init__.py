@@ -1,5 +1,7 @@
 from vgu_signal.information.engine import (
     build_information_item,
+    build_verified_information_item,
+    category_from_notice,
     derive_priority,
     search_archive,
 )
@@ -24,6 +26,8 @@ __all__ = [
     "StudentScope",
     "Urgency",
     "build_information_item",
+    "build_verified_information_item",
+    "category_from_notice",
     "derive_priority",
     "search_archive",
 ]
