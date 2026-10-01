@@ -56,7 +56,11 @@ def _remove_boilerplate(soup: BeautifulSoup) -> None:
     for element in soup.find_all(_BOILERPLATE_TAGS):
         element.decompose()
 
-    for element in soup.find_all(True):
+    for element in list(soup.find_all(True)):
+        # Earlier decompose() calls can invalidate descendants that are still
+        # present in this snapshot. Skip detached/decomposed tags safely.
+        if element.parent is None or element.attrs is None:
+            continue
         if element.get("aria-hidden") == "true":
             element.decompose()
             continue
