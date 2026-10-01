@@ -135,30 +135,6 @@ export async function sendMessage(
   }
 }
 
-export async function getWebhookInfo(token: string): Promise<{
-  url: string;
-  has_custom_certificate: boolean;
-  pending_update_count: number;
-  last_error_date?: number;
-  last_error_message?: string;
-  ip_address?: string;
-}> {
-  return telegramRequest(token, "getWebhookInfo", {});
-}
-
-export async function setWebhook(
-  token: string,
-  url: string,
-  secretToken?: string,
-): Promise<void> {
-  await telegramRequest(token, "setWebhook", {
-    url,
-    secret_token: secretToken,
-    allowed_updates: ["message"],
-    drop_pending_updates: false,
-  });
-}
-
 export async function getFile(token: string, fileId: string): Promise<TelegramFile> {
   return telegramRequest<TelegramFile>(token, "getFile", {file_id: fileId});
 }
