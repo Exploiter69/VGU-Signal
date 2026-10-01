@@ -5,6 +5,8 @@ import {
   findVerificationMatches,
   getLatest,
   getPreferences,
+  createCalendarToken,
+  getCalendarTokenUser,
   getCalendarItems,
   getChangedTimeline,
   getDeadlineConflicts,
@@ -325,7 +327,7 @@ async function handleCalendarLink(env: Env, userId: string, chatId: number, toke
   await sendMessage(token, chatId, `<b>Calendar export</b>\\n\\nYour personalized verified events/deadlines are available as an iCalendar feed for 90 days:\\n<a href="${url.toString()}">Open calendar feed</a>\\n\\nKeep this URL private because it represents your current VGU Signal preferences.`);
 }
 
-async function handleCommand(env: Env, userId: string, chatId: number, text: string, token: string): Promise<void> {
+async function handleCommand(env: Env, userId: string, chatId: number, text: string, token: string, origin: string): Promise<void> {
   const {command, args} = commandParts(text);
   const preferences = await getPreferences(env.DB, userId);
   switch (command) {
@@ -364,7 +366,7 @@ async function handleCommand(env: Env, userId: string, chatId: number, text: str
       await handleDeadlineConflicts(env, preferences, chatId, token);
       return;
     case "/calendar":
-      await handleCalendarLink(env, userId, chatId, token, env.WORKER_ORIGIN ?? "");
+      await handleCalendarLink(env, userId, chatId, token, origin);
       return;
     case "/verify":
       await handleSearch(env, preferences, chatId, token, args, true);
@@ -516,7 +518,7 @@ async function handleVerificationMedia(
 }
 
 
-async function handleUpdate(env: Env, update: TelegramUpdate): Promise<void> {
+async function handleUpdate(env: Env, update: TelegramUpdate, origin: string): Promise<void> {
   const message = update.message;
   if (!message?.from) return;
   if (!privateChat(update)) {
@@ -539,7 +541,7 @@ async function handleUpdate(env: Env, update: TelegramUpdate): Promise<void> {
     return;
   }
   if (await handleOnboarding(env, user.id, message.chat.id, text, env.TELEGRAM_BOT_TOKEN)) return;
-  await handleCommand(env, user.id, message.chat.id, text, env.TELEGRAM_BOT_TOKEN);
+  await handleCommand(env, user.id, message.chat.id, text, env.TELEGRAM_BOT_TOKEN, origin);
 }
 
 interface NotificationUser {
@@ -683,7 +685,7 @@ export default {
       if (provided !== env.TELEGRAM_WEBHOOK_SECRET) return new Response("Unauthorized", {status: 401});
     }
     try {
-      await handleUpdate(env, (await request.json()) as TelegramUpdate);
+      await handleUpdate(env, (await request.json()) as TelegramUpdate, new URL(request.url).origin);
       return new Response("ok");
     } catch {
       return new Response("Bad request", {status: 500});
