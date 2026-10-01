@@ -6,6 +6,8 @@ FIXTURE = b"""
 <h1>Important Notice</h1>
 <p>Exam form submission closes on 20 September 2026.</p>
 <a href="/resources/notice.pdf">Official notice</a>
+<a href="tel:18003131415">Phone</a>
+<a href="mailto:help@vgu.ac.in">Email</a>
 <script>not part of evidence text</script>
 </main></body></html>
 """
