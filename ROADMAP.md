@@ -121,15 +121,17 @@ Work:
 
 **Goal:** provide a stable internal model independent of delivery channel.
 
-- [ ] Categories: deadlines, exams, fees, registration, notices, events, holidays, calendar.
-- [ ] Program/branch/year/semester dimensions.
-- [ ] Importance and urgency model.
-- [ ] Effective/published/expiry timestamps.
-- [ ] Source links.
-- [ ] Change and supersession relationships.
-- [ ] Searchable archive.
+- [x] Categories: deadlines, exams, fees, registration, notices, events, holidays, calendar.
+- [x] Program/branch/year/semester dimensions.
+- [x] Importance and urgency model.
+- [x] Effective/published/expiry timestamps.
+- [x] Source links.
+- [x] Change and supersession relationships.
+- [x] Searchable archive.
 
-**Exit gate:** the same verified information can be rendered for different clients without duplicating business logic.
+**Phase 4 implementation notes:** verified Phase 3 claims are projected into a delivery-neutral InformationItem model. Categories are explicit and deterministic, Phase 2 notice categories map into the stable student-facing taxonomy, and StudentScope carries optional program/branch/year/semester dimensions with conservative wildcard matching. Importance and urgency are separate deterministic relevance signals and never alter verification. Published/effective/expiry and deadline/event timestamps are retained. Primary and additional source links remain attached to every item. Change, supersession and correction relationships preserve prior information. InformationArchive provides deterministic text/category/scope/time search so clients consume the same business model rather than reimplementing it. Migration 0004 adds the durable information archive and lookup indexes.
+
+**Exit gate:** COMPLETE. Verified information can be represented once as InformationItem records and rendered by different clients without duplicating category, scope, priority, temporal, provenance or history logic.
 
 ## Phase 5 — Telegram MVP
 

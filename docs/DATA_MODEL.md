@@ -126,7 +126,67 @@ Event
 - audience
 ```
 
-Later Phase 4 work will finalize student dimensions and delivery-specific fields.
+## Information item
+
+The stable student-facing information representation is a delivery-neutral projection of a verified claim.
+
+InformationItem
+- id
+- claim_id
+- title
+- summary
+- category
+- program
+- branch
+- year
+- semester
+- importance
+- urgency
+- published_at
+- effective_from
+- effective_until
+- due_at
+- starts_at
+- ends_at
+- primary_source_url
+- supersedes_item_id
+- changed_from_item_id
+- corrected_item_id
+
+Categories are explicit: DEADLINE, EXAM, FEES, REGISTRATION, NOTICE, EVENT, HOLIDAY and CALENDAR.
+
+Program/branch/year/semester are optional applicability dimensions. Missing dimensions are broader scope, while incompatible known dimensions do not match. Applicability does not establish truth.
+
+Importance and urgency are separate relevance signals:
+
+- Importance: LOW / NORMAL / HIGH / CRITICAL.
+- Urgency: NONE / UPCOMING / SOON / IMMEDIATE / OVERDUE.
+
+These signals never replace verification.
+
+Effective windows use published/effective/expiry timestamps. Deadline and event timing is preserved separately so clients do not need to infer dates from prose.
+
+## Information source links
+
+information_source_links preserves the primary official URL and any additional source URLs for an information item. The Phase 3 evidence/provenance chain remains the authoritative audit trail.
+
+## Information relationships
+
+information_relationships preserves non-destructive student-facing history:
+
+- CHANGED;
+- SUPERSEDES;
+- CORRECTS.
+
+Old information remains queryable.
+
+## Searchable archive
+
+The information archive supports deterministic search by text, category, student scope and effective time. Expired records are excluded by default when a reference time is supplied, with an explicit option to include them.
+
+## Phase 4 boundary
+
+Information items may only be constructed for publication through the Phase 3 verified-claim guard. Delivery clients consume InformationItem records and do not recreate category, scope, priority, provenance or history rules.
 
 ## User / preferences / notification
 

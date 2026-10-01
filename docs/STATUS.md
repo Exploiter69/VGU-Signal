@@ -1,56 +1,66 @@
 # Project Status
 
-**As of 2026-09-17**
+**As of 2026-10-01**
 
 ## Current stage
 
-**Phase 3 — Verification, Deduplication & Change History: COMPLETE.**
+**Phase 4 — Student Information Model: COMPLETE.**
 
-Phase 0, Phase 1 and Phase 2 remain closed. Phase 3 now establishes the trust boundary between deterministic extraction candidates and student-facing publication.
+Phase 0, Phase 1, Phase 2 and Phase 3 remain closed. Phase 4 adds the stable delivery-neutral information layer between verified claims and future clients.
 
-## Phase 3 implementation
+## Phase 4 implementation
 
-The trust layer is evidence-first and fail-closed:
+The student information model provides:
 
-- claims retain document ID, Phase 1 evidence ID, source ID and deterministic fingerprint;
-- claim creation always starts `UNVERIFIED`;
-- verification requires a matching available evidence ID;
-- legal verification state transitions are explicitly constrained;
-- same-content duplicates are detected by normalized SHA-256 fingerprint;
-- URL replacement requires the same source-relative logical identity and a changed canonical URL;
-- cross-source overlap is represented as `SIMILAR`, never automatically merged or verified;
-- same-source high-overlap differences are surfaced as `CONFLICTS` for review;
-- supersession and correction relationships preserve historical claims;
-- effective intervals provide deterministic expiration;
-- publication requires `VERIFIED` state and an available evidence record;
-- human-readable provenance retains claim → document → evidence → source URL;
-- migration `0003_trust_layer.sql` provides durable documents, claims, evidence links, relationships, verification decisions and correction history.
+- explicit DEADLINE, EXAM, FEES, REGISTRATION, NOTICE, EVENT, HOLIDAY and CALENDAR categories;
+- optional program, branch, year and semester applicability dimensions;
+- conservative deterministic scope matching;
+- separate importance and urgency signals;
+- published, effective, expiry, deadline and event timestamps;
+- primary and additional source links;
+- CHANGED, SUPERSEDES and CORRECTS relationships;
+- deterministic searchable InformationArchive;
+- stable information item IDs;
+- a verified-claim construction path that rejects unverified or evidence-missing claims;
+- durable migration 0004_information_model.sql with scope, category, priority, temporal, source-link and relationship indexes.
 
-## Phase 3 regression coverage
+## Phase 4 regression coverage
 
 The deterministic suite covers:
 
-- evidence-to-claim provenance and non-implicit verification;
-- missing-evidence rejection;
-- publication guard rejection/acceptance;
-- same-content deduplication;
-- cross-source similarity and threshold validation;
-- same-source conflict detection;
-- URL replacement positive and negative cases;
-- supersession, correction and conflict relationships;
-- deterministic expiration;
-- legal and illegal state transitions;
-- human-readable provenance;
-- stable claim fingerprinting;
-- malformed evidence-hash rejection.
+- complete category taxonomy;
+- Phase 2 notice-category mapping;
+- student dimension matching and wildcard behavior;
+- importance/urgency separation;
+- changed-item priority;
+- temporal windows and source-link retention;
+- duplicate archive IDs;
+- change/supersession/correction relationships;
+- text/category/scope/expiry search;
+- deterministic ordering;
+- stable item IDs;
+- rejection of unverified claims at the verified information boundary.
 
-Tests are fixture/generated-input based and do not require the live VGU website, paid services, OCR binaries or LLMs.
+Tests remain fixture/generated-input based and do not require the live VGU website, paid services, OCR binaries or LLMs.
 
-## Phase 3 exit gate
+## Phase 4 exit gate
 
-**COMPLETE.** The trust-layer tests demonstrate that no deadline/notice/event candidate can pass the publication guard without both an explicit `VERIFIED` state and a traceable evidence record. Changed, conflicting, superseded and expired states remain explicit rather than overwriting history.
+**COMPLETE.** The same verified information can now be represented once as a delivery-neutral InformationItem and consumed by future Telegram, Worker/API or web clients without duplicating business logic.
 
-The synchronized quality gate for the revision is:
+## Trust and safety invariants retained
+
+- Official public VGU sources remain authoritative.
+- Information relevance does not become information truth.
+- Applicability dimensions do not prove applicability without supporting source material.
+- Verification remains controlled by the Phase 3 evidence chain.
+- Changed, conflicting, superseded and corrected history is retained.
+- Source links remain attached to student-facing information.
+- Authenticated ERP and private WhatsApp data remain out of scope.
+- No paid-service dependency is introduced.
+
+## Quality gate
+
+The synchronized quality gate for Phase 4 is:
 
 ```text
 ruff format --check .
@@ -60,18 +70,6 @@ pytest -q
 worker: npm install && npm run typecheck
 ```
 
-## Trust and safety invariants retained
-
-- Official public VGU sources remain authoritative.
-- Evidence identity is based on exact raw bytes, not an AI interpretation.
-- Extraction candidates never become verified merely because they were parsed.
-- Conflicts do not select an automatic winner.
-- Historical evidence and claim states are retained rather than overwritten.
-- Discovery does not equal publication or verification.
-- Robots restrictions are honored rather than bypassed.
-- Authenticated ERP and private WhatsApp data remain out of scope.
-- No paid-service dependency is introduced by Phase 3.
-
 ## Next gate
 
-**Phase 4 — Student Information Model.** Phase 4 can now consume verified claims without reimplementing evidence, verification, deduplication or history logic.
+**Phase 5 — Telegram MVP.**
