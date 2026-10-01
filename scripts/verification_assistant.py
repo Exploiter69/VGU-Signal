@@ -11,8 +11,27 @@ from pathlib import Path
 from vgu_signal.extraction import extract_dates, extract_evidence, normalize_text
 
 STOP_WORDS = {
-    "a", "an", "and", "are", "be", "by", "for", "from", "in", "is", "of",
-    "on", "or", "that", "the", "this", "to", "with", "vgu", "notice", "please",
+    "a",
+    "an",
+    "and",
+    "are",
+    "be",
+    "by",
+    "for",
+    "from",
+    "in",
+    "is",
+    "of",
+    "on",
+    "or",
+    "that",
+    "the",
+    "this",
+    "to",
+    "with",
+    "vgu",
+    "notice",
+    "please",
 }
 DATE_PATTERN = re.compile(
     r"\b(?:\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4}|[A-Za-z]{3,9}\s+\d{1,2},\s+\d{4})\b"
