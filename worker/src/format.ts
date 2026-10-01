@@ -3,27 +3,14 @@ import {escapeHtml} from "./telegram";
 import type {InfoRow} from "./queries";
 
 function cleanFact(value: string): string {
-  return value
-    .replace(/\\s+/g, " ")
-    .replace(/^[•▪◦*-]+\\s*/, "")
-    .trim();
+  return value.trim().replaceAll("  ", " ");
 }
 
 function factLines(value: string): string[] {
-  const normalized = value.replace(/\\r/g, "").trim();
+  const normalized = value.replaceAll("\r", "").trim();
   if (!normalized) return [];
-
-  const lines = normalized
-    .split(/\\n+/)
-    .map(cleanFact)
-    .filter(Boolean);
-
-  if (lines.length > 1) return lines;
-
-  return normalized
-    .split(/(?<=[.!?])\\s+(?=[A-Z₹])/)
-    .map(cleanFact)
-    .filter(Boolean);
+  const lines = normalized.split("\n").map(cleanFact).filter(Boolean);
+  return lines.length > 1 ? lines : [cleanFact(normalized)];
 }
 
 function scopeLine(item: InfoRow): string | null {
@@ -62,55 +49,49 @@ export function formatInfo(item: InfoRow, index?: number): string {
     escapeHtml(item.summary),
     scope ? `<b>Applies to:</b> ${escapeHtml(scope)}` : "",
     dates ? escapeHtml(dates) : "",
-    `<b>Verified:</b> directly traceable to an official source`,
+    "<b>Verified:</b> directly traceable to an official source",
     `State: ${escapeHtml(state)}`,
     `Source: <a href="${escapeHtml(item.primary_source_url)}">official VGU source</a>`,
-  ].filter(Boolean).join("\\n");
+  ].filter(Boolean).join("\n");
 }
 
-export function formatSearchList(
-  category: string | undefined,
-  items: InfoRow[],
-): string {
-  const heading = category ? `Verified VGU ${category.toLowerCase()} information` : "Verified VGU information";
+export function formatList(title: string, items: InfoRow[]): string {
   if (!items.length) {
-    return `<b>${escapeHtml(heading)}</b>\\nNo matching verified information found in the current official archive.`;
+    return `<b>${escapeHtml(title)}</b>\nNo matching verified information found in the current official archive.`;
   }
 
   const groups = new Map<string, {item: InfoRow; facts: string[]}>();
   for (const item of items) {
-    const key = `${item.title}\\u0000${item.primary_source_url}`;
+    const key = item.title + "\u0000" + item.primary_source_url;
     const existing = groups.get(key);
     const facts = factLines(item.summary);
     if (!existing) {
       groups.set(key, {item, facts});
-      continue;
-    }
-    for (const fact of facts) {
-      if (!existing.facts.includes(fact)) existing.facts.push(fact);
+    } else {
+      for (const fact of facts) {
+        if (!existing.facts.includes(fact)) existing.facts.push(fact);
+      }
     }
   }
+
+  const heading = title.toLowerCase().startsWith("verified ")
+    ? title.replace(" results", " information")
+    : title;
 
   const sections = [...groups.values()].map(({item, facts}, index) => {
     const scope = scopeLine(item);
     const dates = dateLine(item);
-    const visibleFacts = facts.slice(0, 12);
     return [
       `<b>${index + 1}. ${escapeHtml(item.title)}</b>`,
-      ...visibleFacts.map((fact) => `• ${escapeHtml(fact)}`),
+      ...facts.slice(0, 12).map((fact) => `• ${escapeHtml(fact)}`),
       scope ? `Applies to: ${escapeHtml(scope)}` : "",
       dates ? escapeHtml(dates) : "",
-      `✓ Officially verified`,
+      "✓ Officially verified",
       `🔗 <a href="${escapeHtml(item.primary_source_url)}">Official VGU source</a>`,
-    ].filter(Boolean).join("\\n");
+    ].filter(Boolean).join("\n");
   });
 
-  return [`<b>${escapeHtml(heading)}</b>`, ...sections].join("\\n\\n");
-}
-
-export function formatList(title: string, items: InfoRow[]): string {
-  if (!items.length) return `<b>${escapeHtml(title)}</b>\\nNo matching verified information found.`;
-  return [`<b>${escapeHtml(title)}</b>`, ...items.map((item, index) => formatInfo(item, index + 1))].join("\\n\\n");
+  return [`<b>${escapeHtml(heading)}</b>`, ...sections].join("\n\n");
 }
 
 export function formatPreferences(
@@ -147,5 +128,5 @@ export function formatPreferences(
     "/digest on|off",
     "/mute, /unmute",
     "/quiet 22:00 06:00",
-  ].join("\\n");
+  ].join("\n");
 }
