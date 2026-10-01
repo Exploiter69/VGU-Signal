@@ -363,7 +363,9 @@ def run(root: Path) -> int:
                 manifest_hash,
                 len([item for item in manifest if item.get("r2_object")]),
                 sum(
-                    (evidence_dir / f"{item['source_id']}-{item['raw_content_hash']}.bin").stat().st_size
+                    (evidence_dir / f"{item['source_id']}-{item['raw_content_hash']}.bin")
+                    .stat()
+                    .st_size
                     for item in manifest
                     if item.get("raw_content_hash")
                 ),
