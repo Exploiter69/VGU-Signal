@@ -1,0 +1,125 @@
+name: Verification assistant
+
+on:
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verification-assistant
+  cancel-in-progress: false
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Python pipeline
+        run: python -m pip install .
+
+      - name: Install OCR runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr
+
+      - name: Install Wrangler
+        run: npm install --global wrangler@4.131.0
+
+      - name: Configure D1 identity
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$D1_DATABASE_ID"
+          sed -i "s/00000000-0000-0000-0000-000000000000/$D1_DATABASE_ID/" worker/wrangler.toml
+
+      - name: Apply verification migration
+        working-directory: worker
+        run: npx wrangler --config wrangler.toml d1 migrations apply vgu-signal --remote
+
+      - name: Export queued submissions
+        working-directory: worker
+        run: |
+          npx wrangler --config worker/wrangler.toml d1 execute vgu-signal --remote --json --command             "SELECT * FROM verification_submissions WHERE status = 'QUEUED' ORDER BY created_at ASC LIMIT 10"             > ../artifacts_verification_submissions.json
+
+      - name: Export verified archive
+        working-directory: worker
+        run: |
+          mkdir -p ../artifacts
+          NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          npx wrangler --config worker/wrangler.toml d1 execute vgu-signal --remote --json --command             "SELECT i.*, c.state AS claim_state FROM information_items i JOIN claims c ON c.id=i.claim_id WHERE c.state='VERIFIED' AND (i.effective_from IS NULL OR i.effective_from <= '$NOW') AND (i.effective_until IS NULL OR i.effective_until > '$NOW') AND NOT EXISTS (SELECT 1 FROM information_relationships r WHERE r.old_item_id=i.id AND r.kind='SUPERSEDES')"             > ../artifacts/archive.json
+          npx wrangler --config worker/wrangler.toml d1 execute vgu-signal --remote --json --command             "SELECT DISTINCT i.id AS item_id FROM information_items i JOIN claims c ON c.id=i.claim_id JOIN claim_relationships r ON (r.left_claim_id=c.id OR r.right_claim_id=c.id) WHERE r.kind='CONFLICTS'"             > ../artifacts/conflicts.json
+
+      - name: Prepare batch
+        run: |
+          mkdir -p artifacts/verification
+          python scripts/prepare_verification_batch.py             --submissions artifacts_verification_submissions.json             --archive artifacts/archive.json             --conflicts artifacts/conflicts.json             --objects artifacts/verification             --out artifacts/batch.json
+
+      - name: Download submitted media
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path("artifacts_verification_submissions.json").read_text())
+          rows = data[0]["results"] if isinstance(data, list) and data else []
+          for row in rows:
+              key = row.get("object_key")
+              if not key:
+                  continue
+              out = Path("artifacts/verification") / row["id"]
+              out.parent.mkdir(parents=True, exist_ok=True)
+              print(f"{key}\t{out}")
+          PY
+          while IFS=$'\t' read -r key out; do
+            [ -n "$key" ] || continue
+            npx wrangler --config worker/wrangler.toml r2 object get "vgu-signal-evidence/$key" --file "$out" --remote
+          done < <(
+            python - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path("artifacts_verification_submissions.json").read_text())
+          rows = data[0]["results"] if isinstance(data, list) and data else []
+          for row in rows:
+              if row.get("object_key"):
+                  print(row["object_key"] + "\tartifacts/verification/" + row["id"])
+          PY
+          )
+
+      - name: Process submissions
+        run: |
+          NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          python scripts/verification_assistant.py             --input artifacts/batch.json             --archive artifacts/batch.json             --out artifacts/verification.sql             --now "$NOW"
+          if [ -s artifacts/verification.sql ]; then
+            npx wrangler --config worker/wrangler.toml d1 execute vgu-signal --remote --file artifacts/verification.sql
+          fi
+
+      - name: Export pending responses
+        working-directory: worker
+        run: |
+          npx wrangler --config worker/wrangler.toml d1 execute vgu-signal --remote --json --command             "SELECT s.*, m.information_item_id, m.score, m.match_reason, i.title, i.summary, i.primary_source_url FROM verification_submissions s LEFT JOIN verification_matches m ON m.submission_id=s.id LEFT JOIN information_items i ON i.id=m.information_item_id WHERE s.status IN ('MATCHED','CONFLICTING','UNVERIFIED','FAILED','REVIEW') AND s.response_sent_at IS NULL ORDER BY s.processed_at ASC LIMIT 20"             > ../artifacts/results.json
+
+      - name: Send verification responses
+        run: |
+          python scripts/send_verification_results.py             --rows artifacts/results.json             --sql artifacts/response.sql
+          if [ -s artifacts/response.sql ]; then
+            npx wrangler --config worker/wrangler.toml d1 execute vgu-signal --remote --file artifacts/response.sql
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verification-assistant-${{ github.run_id }}
+          path: artifacts
+          retention-days: 14

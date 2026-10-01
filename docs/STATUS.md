@@ -112,3 +112,27 @@ Migration 0005_telegram_mvp.sql contains the delivery state schema.
 - recovery procedure and free-tier guardrails.
 
 **Next gate: Phase 7 — Verification assistant.**
+
+
+## Phase 7 implementation
+
+**Phase 7 — Verification assistant: COMPLETE.**
+
+Implemented:
+- voluntary forwarded-message intake;
+- image/PDF intake and extraction;
+- deterministic matching against current verified official information;
+- evidence/source response;
+- conflict explanation without automatic winner selection;
+- explicit “Not officially confirmed” no-match response;
+- durable moderator review queue.
+
+Migration 0007_verification_assistant.sql contains submission, match and review state.
+
+## Phase 7 exit gate
+
+**COMPLETE.** A voluntary student submission can be checked against known official VGU evidence without turning absence of evidence into a false claim.
+
+## Next gate
+
+**Phase 8 — Search, calendar and quality-of-life features.**

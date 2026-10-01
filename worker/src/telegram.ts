@@ -9,11 +9,40 @@ export interface TelegramChat {
   type: string;
 }
 
+export interface TelegramFile {
+  file_id: string;
+  file_unique_id: string;
+  file_size?: number;
+  file_path?: string;
+}
+
+export interface TelegramPhotoSize {
+  file_id: string;
+  file_unique_id: string;
+  width: number;
+  height: number;
+  file_size?: number;
+}
+
+export interface TelegramDocument {
+  file_id: string;
+  file_unique_id: string;
+  file_name?: string;
+  mime_type?: string;
+  file_size?: number;
+}
+
 export interface TelegramMessage {
   message_id: number;
   chat: TelegramChat;
   from?: TelegramUser;
   text?: string;
+  caption?: string;
+  document?: TelegramDocument;
+  photo?: TelegramPhotoSize[];
+  forward_origin?: unknown;
+  forward_from?: TelegramUser;
+  forward_date?: number;
 }
 
 export interface TelegramUpdate {
@@ -79,4 +108,15 @@ export async function setWebhook(
     allowed_updates: ["message"],
     drop_pending_updates: false,
   });
+}
+
+
+export async function getFile(token: string, fileId: string): Promise<TelegramFile> {
+  return telegramRequest<TelegramFile>(token, "getFile", {file_id: fileId});
+}
+
+export async function downloadFile(token: string, filePath: string): Promise<ArrayBuffer> {
+  const response = await fetch(`https://api.telegram.org/file/bot${token}/${filePath}`);
+  if (!response.ok) throw new Error(`Telegram file download failed: ${response.status}`);
+  return response.arrayBuffer();
 }

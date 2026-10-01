@@ -250,3 +250,96 @@ export function matchesQuietHours(now: Date, start: string | null, end: string |
   if (start === end) return true;
   return start < end ? hhmm >= start && hhmm < end : hhmm >= start || hhmm < end;
 }
+
+
+export interface VerificationCandidate extends InfoRow {
+  claim_id: string;
+}
+
+export interface VerificationMatch {
+  item: VerificationCandidate;
+  score: number;
+  reason: string;
+}
+
+function verificationTokens(value: string): Set<string> {
+  const stop = new Set(["a", "an", "and", "are", "be", "by", "for", "from", "in", "is", "of", "on", "or", "that", "the", "this", "to", "with", "vgu", "notice"]);
+  return new Set(
+    value.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/)
+      .filter((token) => token.length >= 2 && !stop.has(token)),
+  );
+}
+
+function verificationDates(value: string): Set<string> {
+  const dates = new Set<string>();
+  const pattern = /\b(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})\b/g;
+  for (const match of value.matchAll(pattern)) {
+    const year = match[3].length === 2 ? `20${match[3]}` : match[3];
+    dates.add(`${year}-${match[2].padStart(2, "0")}-${match[1].padStart(2, "0")}`);
+  }
+  return dates;
+}
+
+export async function findVerificationMatches(
+  db: D1Database,
+  now: Date,
+  query: string,
+  limit = 5,
+): Promise<{matches: VerificationMatch[]; conflictItemIds: Set<string>}> {
+  const tokens = [...verificationTokens(query)].slice(0, 12);
+  if (!tokens.length) return {matches: [], conflictItemIds: new Set()};
+  const clauses = tokens.flatMap(() => [
+    "LOWER(i.title) LIKE ?",
+    "LOWER(i.summary) LIKE ?",
+    "LOWER(c.statement) LIKE ?",
+  ]);
+  const params = tokens.flatMap((token) => {
+    const value = `%${token}%`;
+    return [value, value, value];
+  });
+  const result = await db.prepare(
+    `SELECT i.*, c.state AS claim_state
+     FROM information_items i
+     JOIN claims c ON c.id = i.claim_id
+     WHERE ${CURRENT_FILTER}
+       AND (${clauses.join(" OR ")})
+     ORDER BY COALESCE(i.published_at, i.effective_from, i.created_at) DESC
+     LIMIT 30`,
+  ).bind(now.toISOString(), now.toISOString(), ...params).all<VerificationCandidate>();
+
+  const left = verificationTokens(query);
+  const leftDates = verificationDates(query);
+  const scored = result.results.map((item) => {
+    const right = verificationTokens(`${item.title} ${item.summary}`);
+    const overlap = [...left].filter((token) => right.has(token)).length;
+    const union = new Set([...left, ...right]).size;
+    const jaccard = union ? overlap / union : 0;
+    const coverage = left.size ? overlap / left.size : 0;
+    const candidateDates = verificationDates(
+      [item.summary, item.due_at, item.starts_at, item.published_at].filter(Boolean).join(" "),
+    );
+    const dateBonus = [...leftDates].some((date) => candidateDates.has(date)) ? 0.15 : 0;
+    const score = Math.min(1, 0.55 * jaccard + 0.30 * coverage + dateBonus);
+    const reason = dateBonus ? `${overlap} shared tokens; matching date` : `${overlap} shared tokens`;
+    return {item, score, reason};
+  }).filter((match) => match.score >= 0.15)
+    .sort((a, b) => b.score - a.score || a.item.id.localeCompare(b.item.id))
+    .slice(0, limit);
+
+  const conflictItemIds = new Set<string>();
+  if (scored.length) {
+    const placeholders = scored.map(() => "?").join(",");
+    const conflicts = await db.prepare(
+      `SELECT DISTINCT i.id
+       FROM information_items i
+       JOIN claims c ON c.id = i.claim_id
+       JOIN claim_relationships r
+         ON (r.left_claim_id = c.id OR r.right_claim_id = c.id)
+       WHERE r.kind = 'CONFLICTS' AND c.id IN (
+         SELECT claim_id FROM information_items WHERE id IN (${placeholders})
+       )`,
+    ).bind(...scored.map((match) => match.item.id)).all<{id: string}>();
+    conflicts.results.forEach((row) => conflictItemIds.add(row.id));
+  }
+  return {matches: scored, conflictItemIds};
+}

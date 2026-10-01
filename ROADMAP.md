@@ -205,15 +205,17 @@ compare content + dates + identifiers
 OFFICIAL VERIFIED / CONFLICTING / UNVERIFIED
 ```
 
-- [ ] Voluntary forwarded-message intake.
-- [ ] Image/PDF text extraction.
-- [ ] Official-source matching.
-- [ ] Evidence response.
-- [ ] Conflict explanation.
-- [ ] “Not officially confirmed” response.
-- [ ] Moderator review queue where needed.
+- [x] Voluntary forwarded-message intake.
+- [x] Image/PDF text extraction.
+- [x] Official-source matching.
+- [x] Evidence response.
+- [x] Conflict explanation.
+- [x] “Not officially confirmed” response.
+- [x] Moderator review queue where needed.
 
-**Hard rule:** absence of an official match does not prove that a claim is false. The system must say that it is unverified unless evidence supports a stronger conclusion.
+**Hard rule:** COMPLETE. Absence of an official match does not prove that a claim is false. The system says that it is unverified unless evidence supports a stronger conclusion.
+
+**Exit gate:** COMPLETE. All Phase 7 intake, extraction, matching, evidence response, conflict handling and review-queue requirements are implemented.
 
 ## Phase 8 — Search, calendar and quality-of-life features
 
