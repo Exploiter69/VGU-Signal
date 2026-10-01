@@ -62,18 +62,14 @@ def write_sql(statements: list[str], root: Path) -> None:
     for statement in statements:
         cost = len(statement.encode("utf-8")) + 1
         if chunk and size + cost > MAX_SQL_BYTES:
-            (sql_dir / f"{number:04d}.sql").write_text(
-                "\n".join(chunk) + "\n", encoding="utf-8"
-            )
+            (sql_dir / f"{number:04d}.sql").write_text("\n".join(chunk) + "\n", encoding="utf-8")
             number += 1
             chunk, size = [], 0
         chunk.append(statement)
         size += cost
 
     if chunk:
-        (sql_dir / f"{number:04d}.sql").write_text(
-            "\n".join(chunk) + "\n", encoding="utf-8"
-        )
+        (sql_dir / f"{number:04d}.sql").write_text("\n".join(chunk) + "\n", encoding="utf-8")
 
 
 def run(root: Path) -> int:
@@ -99,9 +95,7 @@ def run(root: Path) -> int:
         now = datetime.now(UTC)
         if result.status.value == "FAILED" or result.evidence is None:
             failed += 1
-            manifest.append(
-                {"source_id": source.id, "status": "FAILED", "error": result.error}
-            )
+            manifest.append({"source_id": source.id, "status": "FAILED", "error": result.error})
             continue
 
         fetched += 1
@@ -175,9 +169,7 @@ def run(root: Path) -> int:
             content_type=evidence.content_type,
             body=body,
         )
-        document = document.model_copy(
-            update={"body_text": document.body_text[:MAX_DOCUMENT_TEXT]}
-        )
+        document = document.model_copy(update={"body_text": document.body_text[:MAX_DOCUMENT_TEXT]})
         statements.append(
             insert(
                 "documents",
@@ -357,9 +349,7 @@ def run(root: Path) -> int:
         "status": status,
         "evidence": manifest,
     }
-    (root / "manifest.json").write_text(
-        json.dumps(payload, indent=2), encoding="utf-8"
-    )
+    (root / "manifest.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return 1 if status == "FAILED" else 0
 
 
