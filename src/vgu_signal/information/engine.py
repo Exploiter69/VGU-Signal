@@ -5,6 +5,8 @@ from collections.abc import Iterable
 from datetime import datetime, timedelta
 from hashlib import sha256
 
+from vgu_signal.verification.engine import publishable
+from vgu_signal.verification.models import EvidenceClaim
 from vgu_signal.information.models import (
     Importance,
     InformationCategory,
@@ -192,6 +194,7 @@ def search_archive(
             key=lambda item: (
                 item.due_at is None,
                 item.due_at or item.starts_at or item.effective_from or datetime.max,
+                -list(Importance).index(item.importance),
                 item.id,
             )
         )
@@ -204,6 +207,52 @@ def search_archive(
             )
         )
     return tuple(candidates)
+
+
+def build_verified_information_item(
+    claim: EvidenceClaim,
+    *,
+    available_evidence_ids: Iterable[str],
+    item_id: str,
+    title: str,
+    summary: str,
+    category: InformationCategory,
+    source_url: str,
+    source_links: Iterable[str] | None = None,
+    audience: StudentScope | None = None,
+    published_at: datetime | None = None,
+    effective_from: datetime | None = None,
+    effective_until: datetime | None = None,
+    due_at: datetime | None = None,
+    starts_at: datetime | None = None,
+    ends_at: datetime | None = None,
+    supersedes_item_id: str | None = None,
+    changed_from_item_id: str | None = None,
+    corrected_item_id: str | None = None,
+    now: datetime | None = None,
+) -> InformationItem:
+    if not publishable(claim, available_evidence_ids):
+        raise ValueError("information items require a verified claim with traceable evidence")
+    return build_information_item(
+        item_id=item_id,
+        claim_id=claim.id,
+        title=title,
+        summary=summary,
+        category=category,
+        source_url=source_url,
+        source_links=source_links,
+        audience=audience,
+        published_at=published_at,
+        effective_from=effective_from,
+        effective_until=effective_until,
+        due_at=due_at,
+        starts_at=starts_at,
+        ends_at=ends_at,
+        supersedes_item_id=supersedes_item_id,
+        changed_from_item_id=changed_from_item_id,
+        corrected_item_id=corrected_item_id,
+        now=now,
+    )
 
 
 def information_item_id(claim_id: str, category: InformationCategory) -> str:
