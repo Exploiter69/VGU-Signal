@@ -4,47 +4,93 @@
 
 ## Current stage
 
-**Phase 5 — Telegram MVP: COMPLETE.**
+**Phase 4 — Student Information Model: COMPLETE.**
 
-Phase 0 through Phase 4 remain closed. Phase 5 adds the first student-facing delivery channel while preserving verification and information-model boundaries.
+Phase 0, Phase 1, Phase 2 and Phase 3 remain closed. Phase 4 adds the stable delivery-neutral information layer between verified claims and future clients.
 
-## Phase 5 implementation
+## Phase 4 implementation
 
-The Telegram MVP provides:
+The student information model provides:
 
-- Telegram Bot API webhook foundation;
-- durable /start onboarding for program, branch, year, semester and categories;
-- /latest;
-- /upcoming;
-- /search;
-- conservative /verify;
-- /settings;
-- source/provenance display;
-- deadline reminders;
-- weekly digest;
-- notification deduplication;
-- quiet hours and mute controls;
-- D1-backed user, preference, session and notification state.
+- explicit DEADLINE, EXAM, FEES, REGISTRATION, NOTICE, EVENT, HOLIDAY and CALENDAR categories;
+- optional program, branch, year and semester applicability dimensions;
+- conservative deterministic scope matching;
+- separate importance and urgency signals;
+- published, effective, expiry, deadline and event timestamps;
+- primary and additional source links;
+- CHANGED, SUPERSEDES and CORRECTS relationships;
+- deterministic searchable InformationArchive;
+- stable information item IDs;
+- a verified-claim construction path that rejects unverified or evidence-missing claims;
+- durable migration 0004_information_model.sql with scope, category, priority, temporal, source-link and relationship indexes.
 
-Migration 0005_telegram_mvp.sql contains the delivery state schema.
+## Phase 4 regression coverage
 
-## Phase 5 trust boundary
+The deterministic suite covers:
 
-Only current verified information is delivered by student-facing query paths. Telegram rendering does not make verification decisions. /verify reports matching official evidence and says "Not officially confirmed" when no current match exists; it does not call unmatched information false.
+- complete category taxonomy;
+- Phase 2 notice-category mapping;
+- student dimension matching and wildcard behavior;
+- importance/urgency separation;
+- changed-item priority;
+- temporal windows and source-link retention;
+- duplicate archive IDs;
+- change/supersession/correction relationships;
+- text/category/scope/expiry search;
+- deterministic ordering;
+- stable item IDs;
+- rejection of unverified claims at the verified information boundary.
 
-## Phase 5 exit gate
+Tests remain fixture/generated-input based and do not require the live VGU website, paid services, OCR binaries or LLMs.
 
-**COMPLETE.** A student can subscribe through /start, configure relevance preferences, receive filtered verified information, inspect the official source, and see when an item is changed, superseding or correcting earlier information. Reminder/digest delivery has durable deduplication and respects notification controls.
+## Phase 4 exit gate
+
+**COMPLETE.** The same verified information can now be represented once as a delivery-neutral InformationItem and consumed by future Telegram, Worker/API or web clients without duplicating business logic.
+
+## Trust and safety invariants retained
+
+- Official public VGU sources remain authoritative.
+- Information relevance does not become information truth.
+- Applicability dimensions do not prove applicability without supporting source material.
+- Verification remains controlled by the Phase 3 evidence chain.
+- Changed, conflicting, superseded and corrected history is retained.
+- Source links remain attached to student-facing information.
+- Authenticated ERP and private WhatsApp data remain out of scope.
+- No paid-service dependency is introduced.
 
 ## Quality gate
 
-~~~text
+The synchronized quality gate for Phase 4 is:
+
+```text
 ruff format --check .
 ruff check .
 mypy src
 pytest -q
 worker: npm install && npm run typecheck
-~~~
+```
+
+## Next gate
+
+**Phase 5 — Telegram MVP.**
+
+## Phase 5 implementation
+
+The Telegram MVP provides:
+- Telegram Bot API webhook foundation;
+- durable /start onboarding for program, branch, year, semester and categories;
+- /latest, /upcoming, /search, /verify and /settings;
+- source/provenance and changed/superseding/correcting state display;
+- deadline reminders and weekly digest;
+- durable notification deduplication;
+- quiet hours, mute/unmute and per-channel toggles;
+- D1-backed users, preferences, onboarding sessions and notification history.
+
+Migration 0005_telegram_mvp.sql contains the delivery state schema.
+
+## Phase 5 exit gate
+
+**COMPLETE.** A student can subscribe, configure relevance preferences, receive relevant verified information, inspect the official source, and distinguish changed/superseding/correcting information from current information. Notification delivery is durable and respects user controls.
 
 ## Next gate
 
