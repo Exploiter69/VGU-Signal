@@ -108,9 +108,10 @@ def run(root: Path) -> int:
         (evidence_dir / f"{source.id}-{evidence.raw_content_hash}.bin").write_bytes(body)
 
         chunk_size = 32 * 1024
+        evidence_blob_statements: list[str] = []
         for chunk_index, start in enumerate(range(0, len(body), chunk_size)):
             chunk = body[start : start + chunk_size]
-            statements.append(
+            evidence_blob_statements.append(
                 f"INSERT OR REPLACE INTO evidence_blobs(evidence_id,chunk_index,data) "
                 f"VALUES({sql(evidence.id)},{chunk_index},X'{chunk.hex()}');"
             )
@@ -170,6 +171,7 @@ def run(root: Path) -> int:
                 ),
             ).replace("INSERT OR REPLACE", "INSERT OR IGNORE")
         )
+        statements.extend(evidence_blob_statements)
 
         document = extract_evidence(
             evidence_id=evidence.id,
