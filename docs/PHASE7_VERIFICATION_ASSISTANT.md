@@ -29,7 +29,7 @@ OFFICIAL VERIFIED / CONFLICTING / UNVERIFIED
 - Non-verification ordinary text remains outside the submission flow.
 
 ### Image/PDF extraction
-- Media is downloaded through Telegram's Bot API and stored privately in R2.
+- Media is downloaded through Telegram's Bot API and stored privately in D1 evidence chunks.
 - Telegram file downloads are bounded to 10 MiB by the application.
 - PDFs use the existing deterministic PyMuPDF/pdfplumber/OCR extraction pipeline.
 - Images use locally installed Tesseract OCR on GitHub-hosted runners.
@@ -74,14 +74,14 @@ Migration 0007_verification_assistant.sql adds:
 - verification_matches;
 - moderator_review_queue.
 
-Submitted media is private R2 evidence under verification-submissions/<submission-id>/...; it is never exposed as a public source URL.
+Submitted media is private D1 evidence under `verification_submission_blobs(submission_id, chunk_index, data)`; it is never exposed as a public source URL.
 
 ## Processing
 
 The verification-assistant workflow runs every 15 minutes and can be dispatched manually. It:
 1. applies the verification migration;
 2. reads a bounded queue;
-3. downloads private submission media from R2;
+3. reconstructs private submission media from D1 chunks;
 4. extracts PDF/image text;
 5. compares against current verified official information;
 6. persists matches/status/review records;
@@ -91,7 +91,7 @@ The verification-assistant workflow runs every 15 minutes and can be dispatched 
 
 ## Free-operation policy
 
-No paid OCR, AI API, queue, vector database or external moderation service is required. GitHub Actions, the existing Cloudflare D1/R2 infrastructure and deterministic Python/TypeScript components are sufficient.
+No paid OCR, AI API, queue, vector database or external moderation service is required. GitHub Actions and the existing Cloudflare D1 infrastructure and deterministic Python/TypeScript components are sufficient.
 
 ## Exit gate
 
