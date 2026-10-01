@@ -206,12 +206,15 @@ export async function searchInformation(
   now: Date,
   query: string,
   limit = 8,
+  respectPreferences = true,
 ): Promise<InfoRow[]> {
   const tokens = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
   if (!tokens.length) return [];
-  const {sql: scopeSql, params: scopeParams} = scopeConditions(preferences);
+  const {sql: scopedSql, params: scopedParams} = scopeConditions(preferences);
   const categories = parseCategories(preferences.categories_json);
-  const categorySql = categories.length
+  const scopeSql = respectPreferences ? scopedSql : "";
+  const scopeParams = respectPreferences ? scopedParams : [];
+  const categorySql = respectPreferences && categories.length
     ? ` AND i.category IN (${categories.map(() => "?").join(",")})`
     : "";
   const textSql = tokens.map(() =>

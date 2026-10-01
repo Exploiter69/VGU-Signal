@@ -246,7 +246,7 @@ async function handleSearch(
     await sendMessage(token, chatId, verify ? "Usage: /verify <claim or notice text>" : "Usage: /search <words>");
     return;
   }
-  const items = await searchInformation(env.DB, preferences, new Date(), query, 6);
+  const items = await searchInformation(env.DB, preferences, new Date(), query, 6, !verify);
   if (!items.length) {
     await sendMessage(
       token,
