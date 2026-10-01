@@ -95,3 +95,20 @@ Migration 0005_telegram_mvp.sql contains the delivery state schema.
 ## Next gate
 
 **Phase 6 — Production-free infrastructure.**
+
+
+## Phase 6 implementation
+
+**Phase 6 — Production-free infrastructure: COMPLETE.**
+
+- six-hour GitHub Actions acquisition;
+- deterministic extraction/verification/information generation;
+- immutable R2 evidence objects;
+- D1 migration `0006_operations.sql`;
+- pipeline/source-health/backup operational state;
+- Worker D1/R2 bindings and dependency health checks;
+- secret-management contract;
+- bounded retry/rate-limit policy;
+- recovery procedure and free-tier guardrails.
+
+**Next gate: Phase 7 — Verification assistant.**

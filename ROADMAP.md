@@ -137,22 +137,22 @@ Work:
 
 **Goal:** deliver trustworthy information to students.
 
-- [ ] Telegram bot foundation.
-- [ ] `/start` onboarding.
-- [ ] Program/branch/year/semester preferences.
-- [ ] Category preferences.
-- [ ] `/latest`.
-- [ ] `/upcoming`.
-- [ ] `/search`.
-- [ ] `/verify`.
-- [ ] `/settings`.
-- [ ] Source/provenance display.
-- [ ] Deadline reminders.
-- [ ] Weekly digest.
-- [ ] Notification deduplication.
-- [ ] Quiet/mute controls.
+- [x] Telegram bot foundation.
+- [x] `/start` onboarding.
+- [x] Program/branch/year/semester preferences.
+- [x] Category preferences.
+- [x] `/latest`.
+- [x] `/upcoming`.
+- [x] `/search`.
+- [x] `/verify`.
+- [x] `/settings`.
+- [x] Source/provenance display.
+- [x] Deadline reminders.
+- [x] Weekly digest.
+- [x] Notification deduplication.
+- [x] Quiet/mute controls.
 
-**Exit gate:** a student can subscribe, receive a relevant verified update, inspect its source, and distinguish a changed/superseded item from a current one.
+**Exit gate:** COMPLETE. A student can subscribe, receive a relevant verified update, inspect its source, and distinguish changed/superseded/corrected information from current information.
 
 ## Phase 6 — Production-free infrastructure
 
@@ -175,17 +175,17 @@ Cloudflare Worker ← webhook/API
 Telegram
 ```
 
-- [ ] GitHub Actions scheduled pipeline.
-- [ ] D1 schema and migrations.
-- [ ] R2 evidence storage policy.
-- [ ] Worker webhook/API.
-- [ ] Secret management.
-- [ ] Rate-limit safeguards.
-- [ ] Failure/retry strategy.
-- [ ] Operational health checks.
-- [ ] Backup/recovery procedure.
+- [x] GitHub Actions scheduled pipeline.
+- [x] D1 schema and migrations.
+- [x] R2 evidence storage policy.
+- [x] Worker webhook/API.
+- [x] Secret management.
+- [x] Rate-limit safeguards.
+- [x] Failure/retry strategy.
+- [x] Operational health checks.
+- [x] Backup/recovery procedure.
 
-Free-tier limits must be rechecked before deployment and monitored in production. No paid-tier assumption may be hidden in code or documentation.
+**Exit gate:** COMPLETE. The repository contains scheduled bounded acquisition, durable operational state, immutable R2 evidence policy, Worker resource bindings and health checks, secret management, failure/retry behavior and recovery procedure without a paid dependency.
 
 ## Phase 7 — Verification assistant
 

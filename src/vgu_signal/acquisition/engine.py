@@ -40,6 +40,7 @@ class AcquisitionResult:
         self.previous_evidence = previous_evidence
         self.last_known_good = last_known_good
         self.error = error
+        self.raw_body: bytes | None = None
 
 
 class AcquisitionEngine:
@@ -66,13 +67,15 @@ class AcquisitionEngine:
             if response.not_modified:
                 if previous is None:
                     raise FetchError("server returned 304 but no previous evidence exists")
-                return AcquisitionResult(
+                result = AcquisitionResult(
                     source_id=source.id,
                     status=AcquisitionStatus.UNCHANGED,
                     evidence=previous,
                     previous_evidence=previous,
                     last_known_good=previous,
                 )
+                result.raw_body = b""
+                return result
             content_type = validate_content_type(
                 response.content_type, source.allowed_content_types
             )
@@ -99,13 +102,15 @@ class AcquisitionEngine:
                 )
             else:
                 status = AcquisitionStatus.UNCHANGED
-            return AcquisitionResult(
+            result = AcquisitionResult(
                 source_id=source.id,
                 status=status,
                 evidence=evidence,
                 previous_evidence=previous,
                 last_known_good=evidence,
             )
+            result.raw_body = response.body
+            return result
         except (FetchError, PolicyError) as exc:
             return AcquisitionResult(
                 source_id=source.id,

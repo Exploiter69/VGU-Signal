@@ -17,6 +17,7 @@ import type {TelegramUpdate} from "./telegram";
 
 export interface Env {
   DB: D1Database;
+  EVIDENCE: R2Bucket;
   TELEGRAM_BOT_TOKEN: string;
   TELEGRAM_WEBHOOK_SECRET?: string;
 }
@@ -455,7 +456,14 @@ function isoWeekKey(date: Date): string {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method === "GET") {
-      return Response.json({service: "vgu-signal-worker", status: "ok", phase: 5});
+      const dbCheck = await env.DB.prepare("SELECT 1 AS ok").first<{ok: number}>().catch(() => null);
+      const r2Check = await env.EVIDENCE.list({limit: 1}).then(() => true).catch(() => false);
+      return Response.json({
+        service: "vgu-signal-worker",
+        status: dbCheck?.ok === 1 && r2Check ? "ok" : "degraded",
+        phase: 6,
+        dependencies: {d1: dbCheck?.ok === 1, r2: r2Check},
+      }, {status: dbCheck?.ok === 1 && r2Check ? 200 : 503});
     }
     if (request.method !== "POST") return new Response("Method Not Allowed", {status: 405});
     if (env.TELEGRAM_WEBHOOK_SECRET) {

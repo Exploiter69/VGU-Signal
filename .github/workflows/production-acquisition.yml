@@ -1,0 +1,100 @@
+name: Production acquisition
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  acquire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install pipeline
+        run: python -m pip install .
+
+      - name: Run bounded deterministic acquisition
+        run: python scripts/production_pipeline.py --out artifacts/production
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: production-pipeline-${{ github.run_id }}
+          path: artifacts/production
+          retention-days: 14
+
+      - name: Install Wrangler
+        run: npm install --global wrangler@4.131.0
+
+      - name: Configure Cloudflare deployment identity
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$D1_DATABASE_ID"
+          sed -i "s/00000000-0000-0000-0000-000000000000/$D1_DATABASE_ID/" worker/wrangler.toml
+
+      - name: Apply D1 migrations
+        working-directory: worker
+        run: npx wrangler d1 migrations apply vgu-signal --remote
+
+      - name: Upload immutable evidence to R2
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          while IFS=$'\t' read -r source_id hash; do
+            file="artifacts/production/evidence/$source_id-$hash.bin"
+            test -f "$file"
+            npx wrangler r2 object put "vgu-signal-evidence/evidence/$source_id/$hash.bin" --file "$file" --remote
+          done < <(jq -r '.evidence[] | select(.status != "FAILED") | [.source_id, .raw_content_hash] | @tsv' artifacts/production/manifest.json)
+
+      - name: Apply generated D1 state
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          for file in artifacts/production/sql/*.sql; do
+            npx wrangler d1 execute vgu-signal --remote --file "$file"
+          done
+
+      - name: Record pipeline run manifest
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          python - <<'PY'
+          import hashlib, json, pathlib, subprocess
+          p = pathlib.Path("artifacts/production/manifest.json")
+          data = p.read_bytes()
+          m = json.loads(data)
+          digest = hashlib.sha256(data).hexdigest()
+          status = m["status"]
+          cmd = [
+              "npx", "wrangler", "d1", "execute", "vgu-signal", "--remote",
+              "--command",
+              "INSERT OR REPLACE INTO pipeline_runs(id,started_at,finished_at,status,source_count,fetched_count,changed_count,failed_count,error_summary) "
+              f"VALUES('github:{m['started_at']}','{m['started_at']}','{m['finished_at']}','{status}',"
+              f"{m['source_count']},{m['fetched_count']},{m['changed_count']},{m['failed_count']},"
+              f"'manifest-sha256:{digest}');"
+          ]
+          subprocess.run(cmd, check=True)
+          PY
+
+      - name: Validate Worker bundle
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler deploy --dry-run

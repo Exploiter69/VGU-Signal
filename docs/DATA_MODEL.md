@@ -303,3 +303,37 @@ The unique user/item/type/scheduled-key identity provides durable notification d
 ## Phase 5 query boundary
 
 Telegram reads current VERIFIED claims joined to InformationItem records. Items already replaced through a CHANGED, SUPERSEDES or CORRECTS relationship are excluded from current delivery queries. Historical rows remain durable.
+
+
+## Phase 6 operational data
+
+```
+PipelineRun
+- id
+- started_at
+- finished_at
+- status
+- source_count
+- fetched_count
+- changed_count
+- failed_count
+- error_summary
+
+SourceHealth
+- source_id
+- last_attempt_at
+- last_success_at
+- last_status
+- consecutive_failures
+- last_error
+
+BackupManifest
+- id
+- created_at
+- manifest_hash
+- object_count
+- byte_count
+- r2_prefix
+```
+
+Operational state supplements, but does not replace, the evidence/provenance model.

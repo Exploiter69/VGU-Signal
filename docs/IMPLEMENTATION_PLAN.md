@@ -295,3 +295,50 @@ The core invariant is:
 **COMPLETE.**
 
 A student can subscribe, configure relevance preferences, receive a relevant verified update, inspect its official source, and distinguish changed/superseding/correcting information from current information. Notification delivery is durable and respects mute/quiet/category preferences.
+
+
+## Phase 6 — Production-free infrastructure
+
+**Status: COMPLETE.** See `docs/PHASE6_PRODUCTION_FREE_INFRASTRUCTURE.md`.
+
+### Step 1 — Scheduled acquisition
+- [x] GitHub Actions scheduled pipeline.
+- [x] Manual dispatch.
+- [x] Bounded timeout/size/retry/rate-limit behavior.
+- [x] Deterministic extraction and verification.
+- [x] Run artifacts and manifest.
+
+### Step 2 — Durable infrastructure state
+- [x] D1 operational migration.
+- [x] Pipeline run history.
+- [x] Source health model.
+- [x] Backup manifest model.
+
+### Step 3 — Evidence storage
+- [x] Private R2 binding.
+- [x] Content-addressed evidence keys.
+- [x] No public evidence endpoint.
+
+### Step 4 — Worker deployment boundary
+- [x] D1 binding.
+- [x] R2 binding.
+- [x] 15-minute notification schedule.
+- [x] D1/R2 health endpoint.
+- [x] Secret-management contract.
+
+### Step 5 — Failure/recovery
+- [x] Retry transient acquisition failures.
+- [x] Preserve successful evidence on partial outages.
+- [x] Idempotent evidence/information writes.
+- [x] Migration-replay recovery.
+- [x] Run artifact retention.
+
+### Step 6 — Free-tier quality gate
+- [x] No paid dependency.
+- [x] Current free-tier limits documented.
+- [x] D1 exhaustion treated as degradation, not paid fallback.
+- [x] Python/Worker CI gate retained.
+
+### Phase 6 exit gate
+
+**COMPLETE.**
