@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS verification_submissions (
   result_summary TEXT,
   created_at TEXT NOT NULL,
   processed_at TEXT,
+  response_sent_at TEXT,
   UNIQUE(telegram_chat_id, telegram_message_id)
 );
 
