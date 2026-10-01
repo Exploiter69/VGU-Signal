@@ -26,7 +26,7 @@ import {
   setSession,
   upsertUser,
 } from "./queries";
-import {downloadFile, getFile, sendMessage} from "./telegram";
+import {downloadFile, getFile, sendMessage, setWebhook} from "./telegram";
 import type {TelegramMessage, TelegramUpdate} from "./telegram";
 
 export interface Env {
@@ -755,6 +755,14 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method === "GET") {
       const requestUrl = new URL(request.url);
+      if (requestUrl.pathname === "/__telegram-repair") {
+        await setWebhook(
+          env.TELEGRAM_BOT_TOKEN,
+          new URL("/", request.url).toString(),
+          env.TELEGRAM_WEBHOOK_SECRET,
+        );
+        return Response.json({ok: true, webhook: new URL("/", request.url).toString()});
+      }
       if (requestUrl.pathname === "/calendar.ics") {
         const rawToken = requestUrl.searchParams.get("token");
         if (!rawToken) return new Response("Missing token", {status: 400});
