@@ -7,7 +7,11 @@ from pathlib import Path
 
 from vgu_signal.acquisition import AcquisitionEngine, HttpFetcher, InMemoryEvidenceStore
 from vgu_signal.extraction import extract_evidence
-from vgu_signal.information import InformationCategory, build_information_item, information_item_id
+from vgu_signal.information import (
+    InformationCategory,
+    build_information_item,
+    information_item_id,
+)
 from vgu_signal.sources.registry import SOURCES
 from vgu_signal.verification import claims_from_document, verify_claim
 from vgu_signal.verification.models import VerificationState
@@ -30,6 +34,11 @@ def iso(value: datetime | None) -> str | None:
     return value.astimezone(UTC).isoformat() if value else None
 
 
+def insert(table: str, columns: tuple[str, ...], values: tuple[object, ...]) -> str:
+    rendered = ",".join(sql(value) for value in values)
+    return f"INSERT OR REPLACE INTO {table}({','.join(columns)}) VALUES({rendered});"
+
+
 def info_category(value: str) -> InformationCategory:
     return {
         "ACADEMIC": InformationCategory.CALENDAR,
@@ -49,16 +58,22 @@ def write_sql(statements: list[str], root: Path) -> None:
     chunk: list[str] = []
     size = 0
     number = 1
+
     for statement in statements:
         cost = len(statement.encode("utf-8")) + 1
         if chunk and size + cost > MAX_SQL_BYTES:
-            (sql_dir / f"{number:04d}.sql").write_text("\n".join(chunk) + "\n", encoding="utf-8")
+            (sql_dir / f"{number:04d}.sql").write_text(
+                "\n".join(chunk) + "\n", encoding="utf-8"
+            )
             number += 1
             chunk, size = [], 0
         chunk.append(statement)
         size += cost
+
     if chunk:
-        (sql_dir / f"{number:04d}.sql").write_text("\n".join(chunk) + "\n", encoding="utf-8")
+        (sql_dir / f"{number:04d}.sql").write_text(
+            "\n".join(chunk) + "\n", encoding="utf-8"
+        )
 
 
 def run(root: Path) -> int:
@@ -77,16 +92,16 @@ def run(root: Path) -> int:
     engine = AcquisitionEngine(fetcher, InMemoryEvidenceStore())
     statements: list[str] = []
     manifest: list[dict[str, object]] = []
-    failed = 0
-    fetched = 0
-    changed = 0
+    failed = fetched = changed = 0
 
     for source in enabled:
         result = engine.acquire(source)
         now = datetime.now(UTC)
         if result.status.value == "FAILED" or result.evidence is None:
             failed += 1
-            manifest.append({"source_id": source.id, "status": "FAILED", "error": result.error})
+            manifest.append(
+                {"source_id": source.id, "status": "FAILED", "error": result.error}
+            )
             continue
 
         fetched += 1
@@ -98,20 +113,59 @@ def run(root: Path) -> int:
         (evidence_dir / f"{source.id}-{evidence.raw_content_hash}.bin").write_bytes(body)
 
         statements.append(
-            "INSERT INTO sources(id,name,url,source_class,enabled,created_at,updated_at) "
-            f"VALUES({sql(source.id)},{sql(source.name)},{sql(str(source.url))},{sql(source.source_class.value)},1,"
-            f"{sql(iso(now))},{sql(iso(now))}) ON CONFLICT(id) DO UPDATE SET "
-            "name=excluded.name,url=excluded.url,source_class=excluded.source_class,enabled=excluded.enabled,"
-            "updated_at=excluded.updated_at;"
+            insert(
+                "sources",
+                (
+                    "id",
+                    "name",
+                    "url",
+                    "source_class",
+                    "enabled",
+                    "created_at",
+                    "updated_at",
+                ),
+                (
+                    source.id,
+                    source.name,
+                    str(source.url),
+                    source.source_class.value,
+                    1,
+                    iso(now),
+                    iso(now),
+                ),
+            ).replace("INSERT OR REPLACE", "INSERT")
+            + " ON CONFLICT(id) DO UPDATE SET name=excluded.name,"
+            "url=excluded.url,source_class=excluded.source_class,"
+            "enabled=excluded.enabled,updated_at=excluded.updated_at;"
         )
         statements.append(
-            "INSERT OR IGNORE INTO evidence(id,source_id,source_url,fetched_at,http_status,content_type,"
-            "raw_content_hash,raw_content_ref,http_last_modified,http_etag) VALUES("
-            + ",".join([
-                sql(evidence.id), sql(evidence.source_id), sql(str(evidence.source_url)), sql(iso(evidence.fetched_at)),
-                str(evidence.http_status), sql(evidence.content_type), sql(evidence.raw_content_hash),
-                sql("r2://" + object_key), sql(evidence.http_last_modified), sql(evidence.http_etag),
-            ]) + ");"
+            insert(
+                "evidence",
+                (
+                    "id",
+                    "source_id",
+                    "source_url",
+                    "fetched_at",
+                    "http_status",
+                    "content_type",
+                    "raw_content_hash",
+                    "raw_content_ref",
+                    "http_last_modified",
+                    "http_etag",
+                ),
+                (
+                    evidence.id,
+                    evidence.source_id,
+                    str(evidence.source_url),
+                    iso(evidence.fetched_at),
+                    evidence.http_status,
+                    evidence.content_type,
+                    evidence.raw_content_hash,
+                    "r2://" + object_key,
+                    evidence.http_last_modified,
+                    evidence.http_etag,
+                ),
+            ).replace("INSERT OR REPLACE", "INSERT OR IGNORE")
         )
 
         document = extract_evidence(
@@ -120,39 +174,93 @@ def run(root: Path) -> int:
             url=str(source.url),
             content_type=evidence.content_type,
             body=body,
+        ).model_copy(update={"body_text": ""})
+        document = document.model_copy(
+            update={"body_text": document.body_text[:MAX_DOCUMENT_TEXT]}
         )
-        document = document.model_copy(update={"body_text": document.body_text[:MAX_DOCUMENT_TEXT]})
         statements.append(
-            "INSERT OR REPLACE INTO documents(id,evidence_id,source_id,canonical_url,title,published_at,"
-            "body_text,parser_version,state,created_at,updated_at) VALUES("
-            + ",".join([
-                sql(document.id), sql(document.evidence_id), sql(document.source_id), sql(str(document.canonical_url)),
-                sql(document.title), sql(iso(document.published_at)), sql(document.body_text),
-                sql(document.parser_version), sql("PARSED"), sql(iso(now)), sql(iso(now)),
-            ]) + ");"
+            insert(
+                "documents",
+                (
+                    "id",
+                    "evidence_id",
+                    "source_id",
+                    "canonical_url",
+                    "title",
+                    "published_at",
+                    "body_text",
+                    "parser_version",
+                    "state",
+                    "created_at",
+                    "updated_at",
+                ),
+                (
+                    document.id,
+                    document.evidence_id,
+                    document.source_id,
+                    str(document.canonical_url),
+                    document.title,
+                    iso(document.published_at),
+                    document.body_text,
+                    document.parser_version,
+                    "PARSED",
+                    iso(now),
+                    iso(now),
+                ),
+            )
         )
 
         for claim in claims_from_document(document, evidence.raw_content_hash, evidence.fetched_at):
             decision = verify_claim(claim, [evidence.id], evidence.fetched_at)
             verified = claim.model_copy(update={"state": VerificationState.VERIFIED})
             statements.append(
-                "INSERT OR REPLACE INTO claims(id,document_id,evidence_id,source_id,statement,normalized_statement,"
-                "fingerprint,state,first_seen_at,last_seen_at,effective_from,effective_until) VALUES("
-                + ",".join([
-                    sql(verified.id), sql(verified.document_id), sql(verified.evidence_id), sql(verified.source_id),
-                    sql(verified.statement), sql(verified.normalized_statement), sql(verified.fingerprint),
-                    sql(decision.state.value), sql(iso(verified.first_seen_at)), sql(iso(verified.last_seen_at)),
-                    sql(iso(verified.effective_from)), sql(iso(verified.effective_until)),
-                ]) + ");"
+                insert(
+                    "claims",
+                    (
+                        "id",
+                        "document_id",
+                        "evidence_id",
+                        "source_id",
+                        "statement",
+                        "normalized_statement",
+                        "fingerprint",
+                        "state",
+                        "first_seen_at",
+                        "last_seen_at",
+                        "effective_from",
+                        "effective_until",
+                    ),
+                    (
+                        verified.id,
+                        verified.document_id,
+                        verified.evidence_id,
+                        verified.source_id,
+                        verified.statement,
+                        verified.normalized_statement,
+                        verified.fingerprint,
+                        decision.state.value,
+                        iso(verified.first_seen_at),
+                        iso(verified.last_seen_at),
+                        iso(verified.effective_from),
+                        iso(verified.effective_until),
+                    ),
+                )
             )
             statements.append(
-                "INSERT OR REPLACE INTO claim_evidence(claim_id,evidence_id,role) "
-                f"VALUES({sql(claim.id)},{sql(evidence.id)},{sql('DIRECT')});"
+                insert(
+                    "claim_evidence",
+                    ("claim_id", "evidence_id", "role"),
+                    (claim.id, evidence.id, "DIRECT"),
+                )
             )
             statements.append(
-                "INSERT OR REPLACE INTO verification_decisions(claim_id,state,reason,decided_at) "
-                f"VALUES({sql(claim.id)},{sql(decision.state.value)},{sql(decision.reason)},{sql(iso(decision.decided_at))});"
+                insert(
+                    "verification_decisions",
+                    ("claim_id", "state", "reason", "decided_at"),
+                    (claim.id, decision.state.value, decision.reason, iso(decision.decided_at)),
+                )
             )
+
             cat = info_category(document.notice_category.value)
             target = claim.effective_from
             item = build_information_item(
@@ -170,38 +278,60 @@ def run(root: Path) -> int:
                 now=evidence.fetched_at,
             )
             statements.append(
-                "INSERT OR REPLACE INTO information_items(id,claim_id,title,summary,category,program,branch,year,"
-                "semester,importance,urgency,published_at,effective_from,effective_until,due_at,starts_at,ends_at,"
-                "primary_source_url,created_at,updated_at) VALUES("
-                + ",".join(
-                    [
-                        sql(item.id),
-                        sql(item.claim_id),
-                        sql(item.title),
-                        sql(item.summary),
-                        sql(item.category.value),
-                        sql(item.audience.program),
-                        sql(item.audience.branch),
-                        sql(item.audience.year),
-                        sql(item.audience.semester),
-                        sql(item.importance.value),
-                        sql(item.urgency.value),
-                        sql(iso(item.published_at)),
-                        sql(iso(item.effective_from)),
-                        sql(iso(item.effective_until)),
-                        sql(iso(item.due_at)),
-                        sql(iso(item.starts_at)),
-                        sql(iso(item.ends_at)),
-                        sql(str(item.primary_source_url)),
-                        sql(iso(now)),
-                        sql(iso(now)),
-                    ]
+                insert(
+                    "information_items",
+                    (
+                        "id",
+                        "claim_id",
+                        "title",
+                        "summary",
+                        "category",
+                        "program",
+                        "branch",
+                        "year",
+                        "semester",
+                        "importance",
+                        "urgency",
+                        "published_at",
+                        "effective_from",
+                        "effective_until",
+                        "due_at",
+                        "starts_at",
+                        "ends_at",
+                        "primary_source_url",
+                        "created_at",
+                        "updated_at",
+                    ),
+                    (
+                        item.id,
+                        item.claim_id,
+                        item.title,
+                        item.summary,
+                        item.category.value,
+                        item.audience.program,
+                        item.audience.branch,
+                        item.audience.year,
+                        item.audience.semester,
+                        item.importance.value,
+                        item.urgency.value,
+                        iso(item.published_at),
+                        iso(item.effective_from),
+                        iso(item.effective_until),
+                        iso(item.due_at),
+                        iso(item.starts_at),
+                        iso(item.ends_at),
+                        str(item.primary_source_url),
+                        iso(now),
+                        iso(now),
+                    ),
                 )
-                + ");"
             )
             statements.append(
-                "INSERT OR REPLACE INTO information_source_links(item_id,source_url,is_primary) "
-                f"VALUES({sql(item.id)},{sql(str(item.primary_source_url))},1);"
+                insert(
+                    "information_source_links",
+                    ("item_id", "source_url", "is_primary"),
+                    (item.id, str(item.primary_source_url), 1),
+                )
             )
 
         manifest.append(
@@ -227,7 +357,9 @@ def run(root: Path) -> int:
         "status": status,
         "evidence": manifest,
     }
-    (root / "manifest.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    (root / "manifest.json").write_text(
+        json.dumps(payload, indent=2), encoding="utf-8"
+    )
     return 1 if status == "FAILED" else 0
 
 
