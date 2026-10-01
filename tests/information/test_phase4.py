@@ -150,7 +150,7 @@ def test_source_links_and_temporal_fields_are_preserved():
         }
     )
     assert len(item.source_links) == 2
-    assert item.primary_source_url == "https://vgu.ac.in/notice.pdf"
+    assert str(item.primary_source_url) == "https://vgu.ac.in/notice.pdf"
     assert item.is_effective_at(datetime(2026, 10, 5))
     assert not item.is_effective_at(datetime(2026, 10, 10))
 
