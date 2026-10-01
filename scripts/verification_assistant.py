@@ -215,15 +215,20 @@ def run(input_path: Path, archive_path: Path, out_path: Path, now: str) -> int:
                 scores.append((candidate, score, reason))
         scores.sort(key=lambda item: (-item[1], item[0].id))
         status = classify(scores, conflict_ids)
-        top = scores[0][1] if scores else 0.0
         if status == "MATCHED":
             summary = "Official verified information matched the submission."
             review_reason = None
         elif status == "CONFLICTING":
-            summary = "The submission matches official information involved in a documented conflict; a human review is required."
+            summary = (
+                "The submission matches official information involved in a documented conflict; "
+                "a human review is required."
+            )
             review_reason = "Conflicting official evidence requires moderator review."
         else:
-            summary = "No sufficiently strong official match was found. This does not prove the submission false."
+            summary = (
+                "No sufficiently strong official match was found. "
+                "This does not prove the submission false."
+            )
             review_reason = "No strong deterministic official match."
         output.append(
             build_sql(
