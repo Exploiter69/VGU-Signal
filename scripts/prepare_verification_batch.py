@@ -15,17 +15,17 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--submissions", type=Path, required=True)
     parser.add_argument("--archive", type=Path, required=True)
+    parser.add_argument("--conflicts", type=Path, required=True)
     parser.add_argument("--objects", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
 
     raw_submissions = json.loads(args.submissions.read_text(encoding="utf-8"))
     raw_archive = json.loads(args.archive.read_text(encoding="utf-8"))
+    raw_conflicts = json.loads(args.conflicts.read_text(encoding="utf-8"))
     submissions = unwrap(raw_submissions)
     archive = unwrap(raw_archive)
-    conflicts = []
-    if isinstance(raw_archive, list) and len(raw_archive) > 1:
-        conflicts = raw_archive[1].get("results", [])
+    conflicts = unwrap(raw_conflicts)
     output = {"submissions": [], "archive": {"items": archive, "conflicts": conflicts}}
 
     for row in submissions:
