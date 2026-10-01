@@ -116,14 +116,16 @@ def extract_pdf(*, evidence_id: str, source_id: str, url: str, body: bytes) -> E
 
     kind = ExtractionKind.PDF
     parser_version = PDF_PARSER_VERSION
-    if not text.strip():
+    # Very short embedded text is a strong scanned-PDF signal, while ordinary
+    # short text notices should remain classified as native PDFs.
+    if len(text.strip()) <= 10:
         ocr_text = _ocr(body)
         if ocr_text:
             text = ocr_text
             kind = ExtractionKind.OCR
             parser_version = OCR_PARSER_VERSION
         else:
-            warnings.append("PDF text extraction was empty and OCR was unavailable or unsuccessful")
+            warnings.append("PDF text is too sparse and OCR was unavailable or unsuccessful")
 
     title = str(metadata.get("title") or "").strip() or f"VGU PDF document ({page_count} pages)"
     raw_hash = sha256(body).hexdigest()
