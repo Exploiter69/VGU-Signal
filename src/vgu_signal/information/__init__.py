@@ -6,11 +6,11 @@ from vgu_signal.information.engine import (
     search_archive,
 )
 from vgu_signal.information.models import (
+    Importance,
     InformationArchive,
     InformationCategory,
     InformationItem,
     InformationRelationship,
-    Importance,
     InformationRelationshipKind,
     StudentScope,
     Urgency,
