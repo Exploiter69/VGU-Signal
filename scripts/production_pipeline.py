@@ -104,8 +104,16 @@ def run(root: Path) -> int:
             changed += 1
         evidence = result.evidence
         body = result.raw_body or b""
-        object_key = f"evidence/{source.id}/{evidence.raw_content_hash}.bin"
+        object_key = f"d1://evidence/{evidence.id}"
         (evidence_dir / f"{source.id}-{evidence.raw_content_hash}.bin").write_bytes(body)
+
+        chunk_size = 32 * 1024
+        for chunk_index, start in enumerate(range(0, len(body), chunk_size)):
+            chunk = body[start:start + chunk_size]
+            statements.append(
+                f"INSERT OR REPLACE INTO evidence_blobs(evidence_id,chunk_index,data) "
+                f"VALUES({sql(evidence.id)},{chunk_index},X'{chunk.hex()}');"
+            )
 
         statements.append(
             insert(
@@ -156,7 +164,7 @@ def run(root: Path) -> int:
                     evidence.http_status,
                     evidence.content_type,
                     evidence.raw_content_hash,
-                    "r2://" + object_key,
+                    object_key,
                     evidence.http_last_modified,
                     evidence.http_etag,
                 ),
@@ -333,7 +341,7 @@ def run(root: Path) -> int:
                 "status": result.status.value,
                 "evidence_id": evidence.id,
                 "raw_content_hash": evidence.raw_content_hash,
-                "r2_object": object_key,
+                "evidence_ref": object_key,
                 "fetched_at": iso(evidence.fetched_at),
             }
         )
@@ -356,7 +364,7 @@ def run(root: Path) -> int:
     operations = [
         insert(
             "backup_manifests",
-            ("id", "created_at", "manifest_hash", "object_count", "byte_count", "r2_prefix"),
+            ("id", "created_at", "manifest_hash", "object_count", "byte_count", "artifact_prefix"),
             (
                 f"run:{started.isoformat()}",
                 payload["finished_at"],
@@ -369,7 +377,7 @@ def run(root: Path) -> int:
                     for item in manifest
                     if item.get("raw_content_hash")
                 ),
-                "evidence/",
+                "d1://evidence/",
             ),
         )
     ]
