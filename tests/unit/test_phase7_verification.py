@@ -1,4 +1,15 @@
-from scripts.verification_assistant import Candidate, classify, score_submission
+from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
+
+MODULE_PATH = Path(__file__).parents[2] / "scripts" / "verification_assistant.py"
+SPEC = spec_from_file_location("verification_assistant", MODULE_PATH)
+assert SPEC and SPEC.loader
+MODULE = module_from_spec(SPEC)
+SPEC.loader.exec_module(MODULE)
+
+Candidate = MODULE.Candidate
+classify = MODULE.classify
+score_submission = MODULE.score_submission
 
 
 def candidate(statement: str, title: str = "Exam form deadline") -> Candidate:
