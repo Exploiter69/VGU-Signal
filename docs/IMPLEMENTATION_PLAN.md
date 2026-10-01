@@ -239,3 +239,59 @@ Phase 4 is closed only when one verified revision demonstrates:
 The core invariant is:
 
 > One verified fact becomes one delivery-neutral information item; clients render it rather than recreating its business rules.
+
+## Phase 5 — Telegram MVP
+
+**Status: COMPLETE.** See docs/PHASE5_TELEGRAM_MVP.md.
+
+### Step 1 — Telegram foundation
+- [x] Worker Telegram webhook handler.
+- [x] Telegram API adapter.
+- [x] Private-chat boundary.
+- [x] Secret-token webhook validation.
+- [x] Worker health endpoint.
+
+### Step 2 — Onboarding and preferences
+- [x] Durable /start flow.
+- [x] Program/branch/year/semester capture.
+- [x] Category capture.
+- [x] Durable session state.
+- [x] /settings display.
+- [x] Preference mutation commands.
+
+### Step 3 — Student query commands
+- [x] /latest.
+- [x] /upcoming.
+- [x] /search.
+- [x] Conservative /verify.
+- [x] Source/provenance display.
+- [x] Changed/superseding/correcting state display.
+
+### Step 4 — Notifications
+- [x] Deadline reminders.
+- [x] Weekly digest.
+- [x] Durable notification identity.
+- [x] Retry of failed sends.
+- [x] Quiet-hour filtering.
+- [x] Global mute/unmute.
+- [x] Per-channel reminder/digest toggles.
+
+### Step 5 — Durable delivery schema
+- [x] Users.
+- [x] Preferences.
+- [x] Onboarding sessions.
+- [x] Notification history/deduplication.
+
+### Step 6 — Quality and trust
+- [x] No delivery path publishes unverified claims.
+- [x] No-match verification response is explicitly non-falsifying.
+- [x] No private/ERP ingestion.
+- [x] No bot secret committed.
+- [x] Python quality gate retained.
+- [x] Worker typecheck retained.
+
+### Phase 5 exit gate
+
+**COMPLETE.**
+
+A student can subscribe, configure relevance preferences, receive a relevant verified update, inspect its official source, and distinguish changed/superseding/correcting information from current information. Notification delivery is durable and respects mute/quiet/category preferences.

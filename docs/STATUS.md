@@ -73,3 +73,25 @@ worker: npm install && npm run typecheck
 ## Next gate
 
 **Phase 5 — Telegram MVP.**
+
+## Phase 5 implementation
+
+The Telegram MVP provides:
+- Telegram Bot API webhook foundation;
+- durable /start onboarding for program, branch, year, semester and categories;
+- /latest, /upcoming, /search, /verify and /settings;
+- source/provenance and changed/superseding/correcting state display;
+- deadline reminders and weekly digest;
+- durable notification deduplication;
+- quiet hours, mute/unmute and per-channel toggles;
+- D1-backed users, preferences, onboarding sessions and notification history.
+
+Migration 0005_telegram_mvp.sql contains the delivery state schema.
+
+## Phase 5 exit gate
+
+**COMPLETE.** A student can subscribe, configure relevance preferences, receive relevant verified information, inspect the official source, and distinguish changed/superseding/correcting information from current information. Notification delivery is durable and respects user controls.
+
+## Next gate
+
+**Phase 6 — Production-free infrastructure.**
