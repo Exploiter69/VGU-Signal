@@ -104,7 +104,7 @@ def extract_submission_text(path: Path, content_type: str, source_id: str) -> tu
             content_type=content_type,
             body=body,
         )
-        return document.body_text, document.extraction_kind.value
+        return document.body_text[:1_500_000], document.extraction_kind.value
     if content_type.startswith("image/"):
         output = path.with_suffix(".txt")
         subprocess.run(
@@ -114,7 +114,7 @@ def extract_submission_text(path: Path, content_type: str, source_id: str) -> tu
             capture_output=True,
             text=True,
         )
-        return output.read_text(encoding="utf-8", errors="replace"), "OCR"
+        return output.read_text(encoding="utf-8", errors="replace")[:1_500_000], "OCR"
     raise ValueError(f"unsupported verification media type: {content_type}")
 
 
