@@ -4,7 +4,10 @@ FIXTURE = b"""
 <html><head><title>Important Notice | VGU</title></head>
 <body><header>ignore navigation</header><main>
 <nav class="site-menu">Home Admissions Fees Contact</nav>
-<div class="quick-links"><a href="/a">A</a><a href="/b">B</a><a href="/c">C</a><a href="/d">D</a></div>
+<div class="quick-links">
+        <a href="/a">A</a><a href="/b">B</a><a href="/c">C</a>
+        <a href="/d">D</a>
+      </div>
 <h1>Important Notice</h1>
 <p>Exam form submission closes on 20 September 2026.</p>
 <p class="social-links">Facebook Instagram LinkedIn</p>
