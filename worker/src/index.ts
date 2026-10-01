@@ -1,6 +1,7 @@
 import {formatInfo, formatList, formatPreferences} from "./format";
 import {
   clearSession,
+  findVerificationMatches,
   getLatest,
   getPreferences,
   getSession,
@@ -12,7 +13,7 @@ import {
   setSession,
   upsertUser,
 } from "./queries";
-import {sendMessage} from "./telegram";
+import {downloadFile, getFile, sendMessage} from "./telegram";
 import type {TelegramUpdate} from "./telegram";
 
 export interface Env {
@@ -327,16 +328,134 @@ async function handleCommand(env: Env, userId: string, chatId: number, text: str
   }
 }
 
+
+
+function verificationId(userId: string, messageId: number): string {
+  return `verification:${userId}:${messageId}`;
+}
+
+async function storeVerificationText(
+  env: Env,
+  userId: string,
+  chatId: number,
+  messageId: number,
+  text: string,
+  forwarded: boolean,
+): Promise<void> {
+  const id = verificationId(userId, messageId);
+  const now = new Date().toISOString();
+  const {matches, conflictItemIds} = await findVerificationMatches(env.DB, now ? new Date(now) : new Date(), text);
+  const strong = matches.filter((match) => match.score >= 0.35);
+  const conflicting = strong.some((match) => conflictItemIds.has(match.item.id));
+  const status = conflicting ? "CONFLICTING" : strong.length ? "MATCHED" : "UNVERIFIED";
+  const summary = conflicting
+    ? "Official information matching this submission is involved in a documented conflict; moderator review is required."
+    : strong.length
+      ? "Official verified information matches this submission."
+      : "No sufficiently strong official match was found. This does not prove the submission false.";
+  await env.DB.prepare(
+    `INSERT OR IGNORE INTO verification_submissions
+     (id,user_id,telegram_chat_id,telegram_message_id,intake_kind,submitted_text,status,result_summary,created_at,processed_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(
+    id, userId, String(chatId), messageId, forwarded ? "FORWARDED_TEXT" : "TEXT",
+    text.slice(0, 10000), status, summary, now, now,
+  ).run();
+  for (const match of matches) {
+    await env.DB.prepare(
+      `INSERT OR REPLACE INTO verification_matches
+       (submission_id,information_item_id,score,match_reason,matched_at)
+       VALUES (?, ?, ?, ?, ?)`,
+    ).bind(id, match.item.id, match.score, match.reason, now).run();
+  }
+  if (status !== "MATCHED") {
+    await env.DB.prepare(
+      `INSERT OR IGNORE INTO moderator_review_queue
+       (id,submission_id,reason,status,created_at)
+       VALUES (?, ?, ?, 'OPEN', ?)`,
+    ).bind(
+      `review:${id}`, id,
+      conflicting ? "Conflicting official evidence." : "No strong deterministic official match.",
+      now,
+    ).run();
+  }
+  if (conflicting) {
+    await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId,
+      "<b>Conflicting official evidence</b>\n\nI found official VGU information related to this submission, but the archive records a documented conflict. A moderator review is required; I will not choose a winner automatically.");
+  } else if (strong.length) {
+    await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId,
+      "<b>Official evidence match</b>\n\n" +
+      strong.slice(0, 3).map((match, index) => formatInfo(match.item, index + 1)).join("\n\n"));
+  } else {
+    await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId,
+      "<b>Not officially confirmed.</b>\n\nNo sufficiently strong matching official VGU information was found in the current archive. This does not prove the submission false.");
+  }
+}
+
+async function handleVerificationMedia(
+  env: Env,
+  userId: string,
+  chatId: number,
+  message: TelegramMessage,
+): Promise<void> {
+  const document = message.document;
+  const photo = message.photo?.at(-1);
+  const fileId = document?.file_id ?? photo?.file_id;
+  if (!fileId) return;
+  const mime = document?.mime_type ?? "image/jpeg";
+  const size = document?.file_size ?? photo?.file_size ?? 0;
+  if (size > 10 * 1024 * 1024) {
+    await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId, "That file is too large for verification. Please send a PDF/image up to 10 MiB.");
+    return;
+  }
+  if (mime !== "application/pdf" && !mime.startsWith("image/")) {
+    await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId, "I can verify forwarded PDFs and images. Please send one of those file types.");
+    return;
+  }
+  const id = verificationId(userId, message.message_id);
+  const now = new Date().toISOString();
+  const file = await getFile(env.TELEGRAM_BOT_TOKEN, fileId);
+  if (!file.file_path) throw new Error("Telegram did not provide a downloadable file path");
+  const body = await downloadFile(env.TELEGRAM_BOT_TOKEN, file.file_path);
+  if (body.byteLength > 10 * 1024 * 1024) throw new Error("downloaded file exceeds verification limit");
+  const safeName = (document?.file_name ?? (mime === "application/pdf" ? "submission.pdf" : "submission.jpg"))
+    .replace(/[^A-Za-z0-9._-]/g, "_");
+  const objectKey = `verification-submissions/${id}/${safeName}`;
+  await env.EVIDENCE.put(objectKey, body, {
+    httpMetadata: {contentType: mime},
+    customMetadata: {userId, messageId: String(message.message_id)},
+  });
+  await env.DB.prepare(
+    `INSERT OR IGNORE INTO verification_submissions
+     (id,user_id,telegram_chat_id,telegram_message_id,intake_kind,content_type,file_name,object_key,submitted_text,status,created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'QUEUED', ?)`,
+  ).bind(
+    id, userId, String(chatId), message.message_id, mime === "application/pdf" ? "PDF" : "IMAGE",
+    mime, safeName, objectKey, (message.caption ?? "").slice(0, 10000), now,
+  ).run();
+  await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId,
+    "<b>Verification received.</b>\n\nI saved the submitted image/PDF privately and will extract its text, compare it with verified official VGU evidence, and report either a match, a documented conflict, or <i>Not officially confirmed</i>. A missing match does not prove the claim false.");
+}
+
+
 async function handleUpdate(env: Env, update: TelegramUpdate): Promise<void> {
   const message = update.message;
-  if (!message?.text || !message.from) return;
+  if (!message?.from) return;
   if (!privateChat(update)) {
     await sendMessage(env.TELEGRAM_BOT_TOKEN, message.chat.id, "Please use VGU Signal in a private chat.");
     return;
   }
   const user = await upsertUser(env.DB, message.from.id);
-  const text = message.text.trim();
+  const text = (message.text ?? "").trim();
+  if (message.document || message.photo) {
+    await handleVerificationMedia(env, user.id, message.chat.id, message);
+    return;
+  }
   if (!text.startsWith("/")) {
+    if (message.forward_origin || message.forward_from) {
+      await storeVerificationText(env, user.id, message.chat.id, message.message_id, text || message.caption || "", true);
+      return;
+    }
     if (await handleOnboarding(env, user.id, message.chat.id, text, env.TELEGRAM_BOT_TOKEN)) return;
     await sendMessage(env.TELEGRAM_BOT_TOKEN, message.chat.id, "Use /help to see available commands.");
     return;
