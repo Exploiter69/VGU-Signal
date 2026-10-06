@@ -20,6 +20,12 @@ from vgu_signal.verification.models import VerificationState
 MAX_DOCUMENT_TEXT = 1_500_000
 MAX_SQL_BYTES = 80_000
 
+_DISABLED_INFORMATION_SOURCE_URLS = (
+    "https://vgu.ac.in/resources/handbook-brochures",
+    "https://vgu.ac.in/admission/fee-structure",
+    "https://vgu.ac.in/campus-life/events",
+)
+
 
 def sql(value: object) -> str:
     if value is None:
@@ -346,6 +352,11 @@ def run(root: Path) -> int:
                 "evidence_ref": object_key,
                 "fetched_at": iso(evidence.fetched_at),
             }
+        )
+
+    for source_url in _DISABLED_INFORMATION_SOURCE_URLS:
+        statements.append(
+            f"DELETE FROM information_items WHERE primary_source_url={sql(source_url)};"
         )
 
     write_sql(statements, root)
