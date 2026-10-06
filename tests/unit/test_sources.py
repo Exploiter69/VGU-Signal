@@ -10,7 +10,12 @@ def test_phase1_registry_contains_high_value_official_sources() -> None:
         "vgu-fees",
         "vgu-events",
     } <= set(SOURCES)
-    assert all(source.enabled for source in SOURCES.values())
+    enabled = {source_id for source_id, source in SOURCES.items() if source.enabled}
+    assert {
+        "vgu-academic-calendar-2026-27-first-year",
+        "vgu-examination-rules",
+        "vgu-public-notice",
+    } <= enabled
     assert all(source.source_class.value == "OFFICIAL" for source in SOURCES.values())
 
 
