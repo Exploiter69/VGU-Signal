@@ -808,6 +808,7 @@ export default {
         }, {headers: {"cache-control": "public, max-age=60"}});
       }
 
+      if (requestUrl.pathname === "/" || requestUrl.pathname === "/health") {
       const dbCheck = await env.DB.prepare("SELECT 1 AS ok").first<{ok: number}>().catch(() => null);
       const evidenceCheck = await env.DB.prepare(
         "SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = 'evidence_blobs'",
@@ -819,6 +820,7 @@ export default {
         phase: 6,
         dependencies: {d1: dbCheck?.ok === 1, evidence: evidenceCheck?.ok === 1},
       }, {status: healthy ? 200 : 503});
+      }
     }
     if (request.method !== "POST") return new Response("Method Not Allowed", {status: 405});
     if (env.TELEGRAM_WEBHOOK_SECRET) {
