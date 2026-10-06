@@ -781,6 +781,42 @@ export default {
         dependencies: {d1: dbCheck?.ok === 1, evidence: evidenceCheck?.ok === 1},
       }, {status: healthy ? 200 : 503});
     }
+    if (request.method === "GET" && requestUrl.pathname === "/public/information") {
+        const rawLimit = Number(requestUrl.searchParams.get("limit") ?? "10");
+        const limit = Number.isSafeInteger(rawLimit) ? Math.min(Math.max(rawLimit, 1), 20) : 10;
+        const category = requestUrl.searchParams.get("category");
+        const now = new Date();
+        const allowedCategory = category && CATEGORIES.includes(category as (typeof CATEGORIES)[number])
+          ? category
+          : null;
+        const categorySql = allowedCategory ? " AND i.category = ?" : "";
+        const result = await env.DB.prepare(
+          `SELECT i.id, i.title, i.summary, i.category, i.program, i.branch, i.year, i.semester,
+                  i.importance, i.urgency, i.published_at, i.effective_from, i.effective_until,
+                  i.due_at, i.starts_at, i.ends_at, i.primary_source_url,
+                  i.supersedes_item_id, i.changed_from_item_id, i.corrected_item_id
+           FROM information_items i
+           JOIN claims c ON c.id = i.claim_id
+           WHERE c.state = 'VERIFIED'
+             AND (i.effective_from IS NULL OR i.effective_from <= ?)
+             AND (i.effective_until IS NULL OR i.effective_until > ?)
+             AND NOT EXISTS (
+               SELECT 1 FROM information_relationships r
+               WHERE r.old_item_id = i.id AND r.kind = 'SUPERSEDES'
+             )
+             ${categorySql}
+           ORDER BY COALESCE(i.published_at, i.effective_from, i.created_at) DESC, i.id ASC
+           LIMIT ?`,
+        ).bind(now.toISOString(), now.toISOString(), ...(allowedCategory ? [allowedCategory] : []), limit).all();
+        return Response.json({
+          ok: true,
+          source: "vgu-signal",
+          trust: "verified",
+          generated_at: now.toISOString(),
+          items: result.results,
+        }, {headers: {"cache-control": "public, max-age=60"}});
+      }
+
     if (request.method !== "POST") return new Response("Method Not Allowed", {status: 405});
     if (env.TELEGRAM_WEBHOOK_SECRET) {
       const provided = request.headers.get("X-Telegram-Bot-Api-Secret-Token");
