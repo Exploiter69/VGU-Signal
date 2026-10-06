@@ -755,22 +755,23 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method === "GET") {
       const requestUrl = new URL(request.url);
+
       if (requestUrl.pathname === "/calendar.ics") {
-              const rawToken = requestUrl.searchParams.get("token");
-              if (!rawToken) return new Response("Missing token", {status: 400});
-              const userId = await getCalendarTokenUser(env.DB, await sha256Hex(rawToken), new Date());
-              if (!userId) return new Response("Invalid or expired calendar token", {status: 404});
-              const preferences = await getPreferences(env.DB, userId);
-              if (!preferences) return new Response("User not found", {status: 404});
-              const body = buildIcs(await getCalendarFeedItems(env.DB, preferences, new Date(), 90, 100));
-              return new Response(body, {headers: {
-                "content-type": "text/calendar; charset=utf-8",
-                "content-disposition": 'attachment; filename="vgu-signal.ics"',
-                "cache-control": "private, max-age=300",
-              }});
-            }
+        const rawToken = requestUrl.searchParams.get("token");
+        if (!rawToken) return new Response("Missing token", {status: 400});
+        const userId = await getCalendarTokenUser(env.DB, await sha256Hex(rawToken), new Date());
+        if (!userId) return new Response("Invalid or expired calendar token", {status: 404});
+        const preferences = await getPreferences(env.DB, userId);
+        if (!preferences) return new Response("User not found", {status: 404});
+        const body = buildIcs(await getCalendarFeedItems(env.DB, preferences, new Date(), 90, 100));
+        return new Response(body, {headers: {
+          "content-type": "text/calendar; charset=utf-8",
+          "content-disposition": 'attachment; filename="vgu-signal.ics"',
+          "cache-control": "private, max-age=300",
+        }});
       }
-    if (request.method === "GET" && requestUrl.pathname === "/public/information") {
+
+      if (requestUrl.pathname === "/public/information") {
         const rawLimit = Number(requestUrl.searchParams.get("limit") ?? "10");
         const limit = Number.isSafeInteger(rawLimit) ? Math.min(Math.max(rawLimit, 1), 20) : 10;
         const category = requestUrl.searchParams.get("category");
@@ -797,6 +798,7 @@ export default {
            ORDER BY COALESCE(i.published_at, i.effective_from, i.created_at) DESC, i.id ASC
            LIMIT ?`,
         ).bind(now.toISOString(), now.toISOString(), ...(allowedCategory ? [allowedCategory] : []), limit).all();
+
         return Response.json({
           ok: true,
           source: "vgu-signal",
@@ -805,54 +807,18 @@ export default {
           items: result.results,
         }, {headers: {"cache-control": "public, max-age=60"}});
       }
-            const dbCheck = await env.DB.prepare("SELECT 1 AS ok").first<{ok: number}>().catch(() => null);
-            const evidenceCheck = await env.DB.prepare(
-              "SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = 'evidence_blobs'",
-            ).first<{ok: number}>().catch(() => null);
-            const healthy = dbCheck?.ok === 1 && evidenceCheck?.ok === 1;
-            return Response.json({
-              service: "vgu-signal-worker",
-              status: healthy ? "ok" : "degraded",
-              phase: 6,
-              dependencies: {d1: dbCheck?.ok === 1, evidence: evidenceCheck?.ok === 1},
-            }, {status: healthy ? 200 : 503});
-          }
-          if (request.method === "GET" && requestUrl.pathname === "/public/information") {
-              const rawLimit = Number(requestUrl.searchParams.get("limit") ?? "10");
-              const limit = Number.isSafeInteger(rawLimit) ? Math.min(Math.max(rawLimit, 1), 20) : 10;
-              const category = requestUrl.searchParams.get("category");
-              const now = new Date();
-              const allowedCategory = category && CATEGORIES.includes(category as (typeof CATEGORIES)[number])
-                ? category
-                : null;
-              const categorySql = allowedCategory ? " AND i.category = ?" : "";
-              const result = await env.DB.prepare(
-                `SELECT i.id, i.title, i.summary, i.category, i.program, i.branch, i.year, i.semester,
-                        i.importance, i.urgency, i.published_at, i.effective_from, i.effective_until,
-                        i.due_at, i.starts_at, i.ends_at, i.primary_source_url,
-                        i.supersedes_item_id, i.changed_from_item_id, i.corrected_item_id
-                 FROM information_items i
-                 JOIN claims c ON c.id = i.claim_id
-                 WHERE c.state = 'VERIFIED'
-                   AND (i.effective_from IS NULL OR i.effective_from <= ?)
-                   AND (i.effective_until IS NULL OR i.effective_until > ?)
-                   AND NOT EXISTS (
-                     SELECT 1 FROM information_relationships r
-                     WHERE r.old_item_id = i.id AND r.kind = 'SUPERSEDES'
-                   )
-                   ${categorySql}
-                 ORDER BY COALESCE(i.published_at, i.effective_from, i.created_at) DESC, i.id ASC
-                 LIMIT ?`,
-              ).bind(now.toISOString(), now.toISOString(), ...(allowedCategory ? [allowedCategory] : []), limit).all();
-              return Response.json({
-                ok: true,
-                source: "vgu-signal",
-                trust: "verified",
-                generated_at: now.toISOString(),
-                items: result.results,
-              }, {headers: {"cache-control": "public, max-age=60"}});
-            }
-      
+
+      const dbCheck = await env.DB.prepare("SELECT 1 AS ok").first<{ok: number}>().catch(() => null);
+      const evidenceCheck = await env.DB.prepare(
+        "SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = 'evidence_blobs'",
+      ).first<{ok: number}>().catch(() => null);
+      const healthy = dbCheck?.ok === 1 && evidenceCheck?.ok === 1;
+      return Response.json({
+        service: "vgu-signal-worker",
+        status: healthy ? "ok" : "degraded",
+        phase: 6,
+        dependencies: {d1: dbCheck?.ok === 1, evidence: evidenceCheck?.ok === 1},
+      }, {status: healthy ? 200 : 503});
     }
     if (request.method !== "POST") return new Response("Method Not Allowed", {status: 405});
     if (env.TELEGRAM_WEBHOOK_SECRET) {
