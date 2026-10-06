@@ -355,8 +355,26 @@ def run(root: Path) -> int:
         )
 
     for source_url in _DISABLED_INFORMATION_SOURCE_URLS:
-        statements.append(
-            f"DELETE FROM information_items WHERE primary_source_url={sql(source_url)};"
+        target_items = (
+            "SELECT id FROM information_items "
+            f"WHERE primary_source_url={sql(source_url)}"
+        )
+        statements.extend(
+            [
+                "DELETE FROM information_relationships "
+                f"WHERE old_item_id IN ({target_items}) "
+                f"OR new_item_id IN ({target_items});",
+                "DELETE FROM information_source_links "
+                f"WHERE item_id IN ({target_items});",
+                "DELETE FROM verification_matches "
+                f"WHERE information_item_id IN ({target_items});",
+                "UPDATE information_items SET "
+                "supersedes_item_id=NULL,changed_from_item_id=NULL,corrected_item_id=NULL "
+                f"WHERE supersedes_item_id IN ({target_items}) "
+                f"OR changed_from_item_id IN ({target_items}) "
+                f"OR corrected_item_id IN ({target_items});",
+                f"DELETE FROM information_items WHERE primary_source_url={sql(source_url)};",
+            ]
         )
 
     write_sql(statements, root)
