@@ -5,7 +5,7 @@ from hashlib import sha256
 from typing import cast
 from urllib.parse import urljoin, urlsplit
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from pydantic import HttpUrl
 
 from vgu_signal.extraction.common import (
@@ -64,15 +64,14 @@ def _remove_boilerplate(soup: BeautifulSoup) -> None:
         if element.get("aria-hidden") == "true":
             element.decompose()
             continue
-        marker = " ".join(
-            str(value).casefold()
-            for attribute in ("id", "class", "role")
-            for value in (
-                element.get(attribute, [])
-                if isinstance(element.get(attribute, []), list)
-                else [element.get(attribute, "")]
-            )
-        )
+        marker_parts: list[str] = []
+        for attribute in ("id", "class", "role"):
+            value = element.attrs.get(attribute)
+            if isinstance(value, list):
+                marker_parts.extend(str(item).casefold() for item in value)
+            elif value is not None:
+                marker_parts.append(str(value).casefold())
+        marker = " ".join(marker_parts)
         if any(term in marker for term in _BOILERPLATE_MARKERS):
             element.decompose()
             continue
@@ -85,7 +84,7 @@ def _remove_boilerplate(soup: BeautifulSoup) -> None:
                 element.decompose()
 
 
-def _content_root(soup: BeautifulSoup):
+def _content_root(soup: BeautifulSoup) -> Tag:
     main = soup.find("main")
     if main is not None:
         return main
@@ -95,7 +94,7 @@ def _content_root(soup: BeautifulSoup):
     return soup.body or soup
 
 
-def _document_title(soup: BeautifulSoup, root) -> str:
+def _document_title(soup: BeautifulSoup, root: Tag) -> str:
     heading = root.find(["h1", "h2"])
     if heading:
         value = heading.get_text(" ", strip=True)
