@@ -21,6 +21,7 @@ VGU_RESOURCES = Source(
     name="VGU official resources / handbooks / calendars",
     url=cast(HttpUrl, "https://vgu.ac.in/resources/handbook-brochures"),
     source_class=SourceClass.OFFICIAL,
+    enabled=False,
     allowed_content_types=_DEFAULT_TYPES,
 )
 
@@ -56,6 +57,7 @@ VGU_FEES = Source(
     name="VGU public fee information",
     url=cast(HttpUrl, "https://vgu.ac.in/admission/fee-structure"),
     source_class=SourceClass.OFFICIAL,
+    enabled=False,
     allowed_content_types=("text/html", "application/xhtml+xml"),
 )
 
@@ -64,6 +66,7 @@ VGU_EVENTS = Source(
     name="VGU public events",
     url=cast(HttpUrl, "https://vgu.ac.in/campus-life/events"),
     source_class=SourceClass.OFFICIAL,
+    enabled=False,
     allowed_content_types=("text/html", "application/xhtml+xml"),
 )
 
